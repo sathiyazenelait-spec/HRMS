@@ -6,6 +6,8 @@ server:
 spring:
   application:
     name: zenelait-hrms-backend
+  profiles:
+    active: mock-services
   sql:
     init:
       mode: always
@@ -39,11 +41,11 @@ spring:
     consumer:
       group-id: hrms-group
       auto-offset-reset: earliest
-      key-deserializer: org.apache.common.serialization.StringDeserializer
-      value-deserializer: org.apache.common.serialization.StringDeserializer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
     producer:
-      key-serializer: org.apache.common.serialization.StringSerializer
-      value-serializer: org.apache.common.serialization.StringSerializer
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
   # Enable Virtual Threads (Spring Boot 3.2+ on Java 21+)
   threads:

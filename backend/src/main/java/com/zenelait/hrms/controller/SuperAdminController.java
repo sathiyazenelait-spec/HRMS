@@ -1,7 +1,9 @@
 package com.zenelait.hrms.controller;
 
 import com.zenelait.hrms.entity.Organization;
+import com.zenelait.hrms.entity.User;
 import com.zenelait.hrms.repository.OrganizationRepository;
+import com.zenelait.hrms.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -22,6 +24,9 @@ public class SuperAdminController {
 
     @Autowired
     private OrganizationRepository organizationRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private KafkaTemplate<String, String> kafkaTemplate;
@@ -134,6 +139,98 @@ public class SuperAdminController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "An error occurred: " + e.getMessage()));
+        }
+    }
+
+    // Get all HR users
+    @GetMapping("/hrs")
+    public ResponseEntity<?> getHRs() {
+        try {
+            List<User> hrs = userRepository.findByRole("ADMIN");
+            return ResponseEntity.ok(hrs);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error fetching HRs: " + e.getMessage()));
+        }
+    }
+
+    // Create a new HR user for an organization
+    @PostMapping("/hr")
+    public ResponseEntity<?> createHR(@RequestBody Map<String, String> request) {
+        try {
+            String username = request.get("username");
+            String gmail = request.get("gmail");
+            String mobile = request.get("mobile");
+            String password = request.get("password");
+            String orgIdStr = request.get("orgId");
+
+            if (username == null || gmail == null || mobile == null || password == null || orgIdStr == null) {
+                return ResponseEntity.badRequest().body(Map.of("message", "All fields are required"));
+            }
+
+            if (userRepository.existsByUsername(username)) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Username already exists"));
+            }
+
+            java.util.Optional<Organization> orgOpt = organizationRepository.findById(Long.parseLong(orgIdStr));
+            if (orgOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Organization not found"));
+            }
+
+            User user = User.builder()
+                    .username(username)
+                    .gmail(gmail)
+                    .mobile(mobile)
+                    .password(password)
+                    .role("ADMIN")
+                    .organization(orgOpt.get())
+                    .build();
+
+            User saved = userRepository.save(user);
+            return ResponseEntity.ok(saved);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error creating HR: " + e.getMessage()));
+        }
+    }
+
+    // Update HR details
+    @PutMapping("/hr/{id}")
+    public ResponseEntity<?> updateHR(@PathVariable Long id, @RequestBody Map<String, String> request) {
+        try {
+            java.util.Optional<User> userOpt = userRepository.findById(id);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "HR user not found"));
+            }
+
+            User user = userOpt.get();
+            if (request.containsKey("username")) user.setUsername(request.get("username"));
+            if (request.containsKey("gmail")) user.setGmail(request.get("gmail"));
+            if (request.containsKey("mobile")) user.setMobile(request.get("mobile"));
+            if (request.containsKey("password") && !request.get("password").isEmpty()) {
+                user.setPassword(request.get("password"));
+            }
+
+            User updated = userRepository.save(user);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error updating HR: " + e.getMessage()));
+        }
+    }
+
+    // Delete HR user
+    @DeleteMapping("/hr/{id}")
+    public ResponseEntity<?> deleteHR(@PathVariable Long id) {
+        try {
+            if (!userRepository.existsById(id)) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "HR user not found"));
+            }
+            userRepository.deleteById(id);
+            return ResponseEntity.ok(Map.of("message", "HR deleted successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error deleting HR: " + e.getMessage()));
         }
     }
 }

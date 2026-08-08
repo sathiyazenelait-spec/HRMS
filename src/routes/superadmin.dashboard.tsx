@@ -36,7 +36,7 @@ export const Route = createFileRoute("/superadmin/dashboard")({
 });
 
 function SuperadminDashboard() {
-  const [activeSubTab, setActiveSubTab] = useState<"overview" | "orgs" | "plans" | "notifications" | "builder">("overview");
+  const [activeSubTab, setActiveSubTab] = useState<"overview" | "orgs" | "plans" | "notifications" | "builder" | "hrs">("overview");
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
@@ -81,6 +81,22 @@ function SuperadminDashboard() {
   const [blocks, setBlocks] = useState<LandingPageBlock[]>([]);
   const [builderSuccess, setBuilderSuccess] = useState("");
 
+  // HR Management State
+  const [hrs, setHrs] = useState<any[]>([]);
+  const [hrUsername, setHrUsername] = useState("");
+  const [hrGmail, setHrGmail] = useState("");
+  const [hrMobile, setHrMobile] = useState("");
+  const [hrPassword, setHrPassword] = useState("");
+  const [hrOrgId, setHrOrgId] = useState("");
+  const [hrError, setHrError] = useState("");
+  const [hrSuccess, setHrSuccess] = useState("");
+
+  const [editingHr, setEditingHr] = useState<any | null>(null);
+  const [editHrUsername, setEditHrUsername] = useState("");
+  const [editHrGmail, setEditHrGmail] = useState("");
+  const [editHrMobile, setEditHrMobile] = useState("");
+  const [editHrPassword, setEditHrPassword] = useState("");
+
   const [systemStatus, setSystemStatus] = useState<any>({
     javaVersion: "...",
     processors: 0,
@@ -90,6 +106,79 @@ function SuperadminDashboard() {
     redisCache: "...",
     kafkaBroker: "..."
   });
+
+  const loadHRs = async () => {
+    try {
+      const data = await apiService.getHRs();
+      setHrs(data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleCreateHR = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setHrError("");
+    setHrSuccess("");
+    if (!hrUsername || !hrGmail || !hrMobile || !hrPassword || !hrOrgId) {
+      setHrError("All fields are required");
+      return;
+    }
+    try {
+      await apiService.createHR({
+        username: hrUsername,
+        gmail: hrGmail,
+        mobile: hrMobile,
+        password: hrPassword,
+        orgId: hrOrgId,
+      });
+      setHrSuccess(`Successfully created HR account for ${hrUsername}!`);
+      setHrUsername("");
+      setHrGmail("");
+      setHrMobile("");
+      setHrPassword("");
+      setHrOrgId("");
+      loadHRs();
+      setTimeout(() => setHrSuccess(""), 3000);
+    } catch (err: any) {
+      setHrError(err.message || "Failed to create HR account");
+    }
+  };
+
+  const handleEditHrClick = (hr: any) => {
+    setEditingHr(hr);
+    setEditHrUsername(hr.username);
+    setEditHrGmail(hr.gmail);
+    setEditHrMobile(hr.mobile);
+    setEditHrPassword("");
+  };
+
+  const handleUpdateHR = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingHr) return;
+    try {
+      await apiService.updateHR(editingHr.id, {
+        username: editHrUsername,
+        gmail: editHrGmail,
+        mobile: editHrMobile,
+        password: editHrPassword,
+      });
+      setEditingHr(null);
+      loadHRs();
+    } catch (err: any) {
+      alert(err.message || "Failed to update HR account");
+    }
+  };
+
+  const handleDeleteHR = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this HR administrator account?")) return;
+    try {
+      await apiService.deleteHR(id);
+      loadHRs();
+    } catch (err: any) {
+      alert(err.message || "Failed to delete HR account");
+    }
+  };
 
   useEffect(() => {
     // Check if logged in as SUPERADMIN
@@ -104,6 +193,7 @@ function SuperadminDashboard() {
     loadSystemStatus();
     loadPlans();
     loadQueries();
+    loadHRs();
     setBlocks(apiService.getLandingPageSchema());
   }, []);
 
@@ -373,6 +463,14 @@ function SuperadminDashboard() {
             }`}
           >
             Page Builder
+          </button>
+          <button
+            onClick={() => setActiveSubTab("hrs")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+              activeSubTab === "hrs" ? "bg-indigo-600 text-white" : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            Manage HR Admins
           </button>
         </div>
 
@@ -1123,7 +1221,261 @@ function SuperadminDashboard() {
             </div>
           </div>
         )}
+
+        {/* SUBTAB 6: Manage HR Admins */}
+        {activeSubTab === "hrs" && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Provision new HR Account */}
+              <div className="bg-slate-900/30 border border-slate-900 rounded-xl p-6 h-fit">
+                <h3 className="font-bold text-sm text-slate-300 flex items-center gap-1.5 mb-4">
+                  <Plus className="h-4.5 w-4.5 text-indigo-400" />
+                  Provision HR Administrator
+                </h3>
+
+                {hrError && (
+                  <div className="mb-4 rounded-lg bg-rose-500/10 border border-rose-500/20 p-3 text-xs text-rose-400">
+                    {hrError}
+                  </div>
+                )}
+
+                {hrSuccess && (
+                  <div className="mb-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-3 text-xs text-emerald-400">
+                    {hrSuccess}
+                  </div>
+                )}
+
+                <form onSubmit={handleCreateHR} className="flex flex-col gap-4 text-xs">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-slate-500 font-semibold">HR Username</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. acme_hr"
+                      value={hrUsername}
+                      onChange={(e) => setHrUsername(e.target.value)}
+                      className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-slate-500 font-semibold">HR Email Address</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="hr@organization.com"
+                      value={hrGmail}
+                      onChange={(e) => setHrGmail(e.target.value)}
+                      className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-slate-500 font-semibold">HR Mobile Number</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. +919876543210"
+                      value={hrMobile}
+                      onChange={(e) => setHrMobile(e.target.value)}
+                      className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-slate-500 font-semibold">Initial Password</label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="••••••••"
+                      value={hrPassword}
+                      onChange={(e) => setHrPassword(e.target.value)}
+                      className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-slate-500 font-semibold">Associate Organization Tenant</label>
+                    <select
+                      required
+                      value={hrOrgId}
+                      onChange={(e) => setHrOrgId(e.target.value)}
+                      className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 focus:border-indigo-500 focus:outline-none text-slate-300"
+                    >
+                      <option value="">Select Tenant Organization...</option>
+                      {orgs.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.name} ({o.orgCode})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full rounded-lg bg-indigo-600 py-2.5 font-bold hover:bg-indigo-500 text-white transition-colors mt-2 cursor-pointer"
+                  >
+                    Provision HR Account
+                  </button>
+                </form>
+              </div>
+
+              {/* HR Administrator Accounts Table */}
+              <div className="bg-slate-900/20 border border-slate-900 rounded-xl p-6 lg:col-span-2 flex flex-col gap-4">
+                <h3 className="font-bold text-sm text-slate-300 flex items-center gap-1.5">
+                  <Users className="h-4.5 w-4.5 text-indigo-400" />
+                  Active HR Administrators
+                </h3>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-900 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
+                        <th className="py-3">Username</th>
+                        <th className="py-3">Contact</th>
+                        <th className="py-3">Organization</th>
+                        <th className="py-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {hrs.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="py-8 text-center text-slate-500 italic">
+                            No HR administrator accounts found in the database.
+                          </td>
+                        </tr>
+                      ) : (
+                        hrs.map((hr) => (
+                          <tr key={hr.id} className="border-b border-slate-900/60 hover:bg-slate-900/10">
+                            <td className="py-3 font-semibold text-slate-200">
+                              {hr.username}
+                              <span className="text-[10px] text-slate-500 block font-normal">ID: {hr.id}</span>
+                            </td>
+                            <td className="py-3">
+                              <div className="flex items-center gap-1 text-slate-300">
+                                <Mail className="h-3 w-3 text-slate-500" />
+                                {hr.gmail}
+                              </div>
+                              <div className="flex items-center gap-1 text-slate-505 mt-0.5">
+                                <Phone className="h-3 w-3" />
+                                {hr.mobile}
+                              </div>
+                            </td>
+                            <td className="py-3 text-slate-300 font-semibold">
+                              {hr.organization ? (
+                                <>
+                                  {hr.organization.name}
+                                  <span className="text-[10px] text-indigo-400 block font-mono font-normal">
+                                    {hr.organization.orgCode}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-rose-400 italic">No associated org</span>
+                              )}
+                            </td>
+                            <td className="py-3 text-right">
+                              <div className="flex justify-end gap-1.5">
+                                <button
+                                  onClick={() => handleEditHrClick(hr)}
+                                  className="p-1.5 rounded-lg border border-slate-800 hover:bg-slate-900 hover:text-white transition-colors cursor-pointer"
+                                  title="Edit HR Details"
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteHR(hr.id)}
+                                  className="p-1.5 rounded-lg border border-slate-850 hover:bg-rose-950/20 hover:text-rose-400 transition-colors cursor-pointer"
+                                  title="Remove HR Account"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
+
+      {/* Edit HR Modal Dialog */}
+      {editingHr && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl relative text-left">
+            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <Settings className="h-5 w-5 text-indigo-400 animate-spin" />
+              <span>Modify HR Administrator Account</span>
+            </h3>
+
+            <form onSubmit={handleUpdateHR} className="flex flex-col gap-4 text-xs">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-500 font-semibold">Username</label>
+                <input
+                  type="text"
+                  required
+                  value={editHrUsername}
+                  onChange={(e) => setEditHrUsername(e.target.value)}
+                  className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 focus:border-indigo-500 focus:outline-none text-slate-100"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-500 font-semibold">Email (Gmail)</label>
+                <input
+                  type="email"
+                  required
+                  value={editHrGmail}
+                  onChange={(e) => setEditHrGmail(e.target.value)}
+                  className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 focus:border-indigo-500 focus:outline-none text-slate-100"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-500 font-semibold">Mobile Number</label>
+                <input
+                  type="text"
+                  required
+                  value={editHrMobile}
+                  onChange={(e) => setEditHrMobile(e.target.value)}
+                  className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 focus:border-indigo-500 focus:outline-none text-slate-100"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-500 font-semibold">Reset Password (leave empty to keep current)</label>
+                <input
+                  type="password"
+                  value={editHrPassword}
+                  onChange={(e) => setEditHrPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 focus:border-indigo-500 focus:outline-none text-slate-100"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-900">
+                <button
+                  type="button"
+                  onClick={() => setEditingHr(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-800 hover:bg-slate-900 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold cursor-pointer"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Edit Modal Dialog */}
       {editingOrg && (

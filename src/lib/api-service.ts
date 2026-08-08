@@ -2423,5 +2423,71 @@ export const apiService = {
     localStorage.setItem("mock_role_permissions", JSON.stringify(list));
     return newPerm;
   },
+
+  // HR administrators management for Superadmin
+  async getHRs(): Promise<User[]> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/superadmin/hrs`);
+      if (response.ok) return await response.json();
+    } catch (e) {
+      console.warn("Backend getHRs offline, using localStorage fallback");
+    }
+    const users = getLocalStorageItem("mock_users");
+    return users.filter((u) => u.role === "ADMIN");
+  },
+
+  async createHR(hrData: any): Promise<User> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/superadmin/hr`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(hrData),
+      });
+      if (response.ok) return await response.json();
+    } catch (e) {
+      console.warn("Backend createHR offline, using localStorage fallback");
+    }
+    const users = getLocalStorageItem("mock_users");
+    const newUser = { ...hrData, id: Date.now(), role: "ADMIN" };
+    users.push(newUser);
+    localStorage.setItem("mock_users", JSON.stringify(users));
+    return newUser;
+  },
+
+  async updateHR(id: number, hrData: any): Promise<User> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/superadmin/hr/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(hrData),
+      });
+      if (response.ok) return await response.json();
+    } catch (e) {
+      console.warn("Backend updateHR offline, using localStorage fallback");
+    }
+    const users = getLocalStorageItem("mock_users");
+    const idx = users.findIndex((u) => u.id === id);
+    if (idx !== -1) {
+      users[idx] = { ...users[idx], ...hrData };
+      localStorage.setItem("mock_users", JSON.stringify(users));
+      return users[idx];
+    }
+    throw new Error("HR User not found");
+  },
+
+  async deleteHR(id: number): Promise<any> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/superadmin/hr/${id}`, {
+        method: "DELETE",
+      });
+      if (response.ok) return await response.json();
+    } catch (e) {
+      console.warn("Backend deleteHR offline, using localStorage fallback");
+    }
+    const users = getLocalStorageItem("mock_users");
+    const filtered = users.filter((u) => u.id !== id);
+    localStorage.setItem("mock_users", JSON.stringify(filtered));
+    return { message: "HR deleted successfully" };
+  },
 };
 
