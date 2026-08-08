@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Receipt, Plus, Users, ShieldAlert, BadgeAlert, Sparkles, User, Calendar, CreditCard, Landmark, DollarSign, Wallet, FileText, Check, X, RotateCcw } from "lucide-react";
+import { Receipt, Plus, Users, ShieldAlert, BadgeAlert, Sparkles, User, Calendar, CreditCard, Landmark, DollarSign, Wallet, FileText, Check, X, RotateCcw, Download } from "lucide-react";
 import { useEffect, useState } from "react";
 import { apiService, User as APIUser } from "../lib/api-service";
 import { PageHeader } from "@/components/page-header";
@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 export const Route = createFileRoute("/_app/expenses")({
   head: () => ({
@@ -100,6 +102,48 @@ function ExpensesPage() {
       await loadData();
     } catch (e) {
       alert("Failed to update status");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    const element = document.getElementById("voucher-sheet");
+    if (!element || !selectedVoucherClaim) return;
+    setLoading(true);
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 295; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      const fileName = `Voucher_${selectedVoucherClaim.username}_${selectedVoucherClaim.claimDate}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error("PDF Generation error:", error);
+      alert("Failed to generate PDF. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -415,7 +459,7 @@ function ExpensesPage() {
             </div>
 
             {/* Printable Voucher Paper Sheet */}
-            <div className="bg-white text-slate-900 p-6 rounded-xl border border-slate-250 shadow-inner font-sans print:border-0 print:shadow-none print:p-0">
+            <div id="voucher-sheet" className="bg-white text-slate-900 p-6 rounded-xl border border-slate-250 shadow-inner font-sans print:border-0 print:shadow-none print:p-0">
               {/* Company Header */}
               <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4">
                 <div>
@@ -526,6 +570,14 @@ function ExpensesPage() {
                 className="border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white cursor-pointer"
               >
                 Close View
+              </Button>
+              <Button
+                onClick={handleDownloadPDF}
+                disabled={loading}
+                className="bg-slate-800 border border-slate-700 text-white hover:bg-slate-700 font-bold flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="h-4 w-4" />
+                Download PDF
               </Button>
               <Button
                 onClick={() => window.print()}
