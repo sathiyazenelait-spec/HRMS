@@ -6,6 +6,8 @@ server:
 spring:
   application:
     name: zenelait-hrms-backend
+  profiles:
+    active: mock-services
   sql:
     init:
       mode: always
