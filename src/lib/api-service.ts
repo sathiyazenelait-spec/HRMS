@@ -112,6 +112,35 @@ const BACKEND_URL = typeof window !== "undefined" && (window.location.hostname =
   ? "http://localhost:8080/api"
   : "https://hrms-backend-bl1y.onrender.com/api";
 
+let lastFetchError: Error | null = null;
+
+if (typeof window !== "undefined") {
+  const originalFetch = window.fetch;
+  window.fetch = async function (...args) {
+    try {
+      const response = await originalFetch(...args);
+      if (!response.ok) {
+        let errMsg = `HTTP error! status: ${response.status}`;
+        try {
+          // Clone the response so it can still be read by other handlers if needed
+          const cloned = response.clone();
+          const err = await cloned.json();
+          if (err && err.message) errMsg = err.message;
+        } catch (_) {}
+        lastFetchError = new Error(errMsg);
+        throw lastFetchError;
+      }
+      lastFetchError = null;
+      return response;
+    } catch (error: any) {
+      if (!lastFetchError) {
+        lastFetchError = error;
+      }
+      throw error;
+    }
+  };
+}
+
 // Initialize Local Mock DB if not present in localStorage
 const initializeLocalMockDB = () => {
   if (typeof window === "undefined") return;
@@ -275,15 +304,21 @@ const initializeLocalMockDB = () => {
 
 // Safe JSON Parse Helper
 const getLocalStorageItem = (key: string): any[] => {
+  if (key.startsWith("mock_")) {
+    if (lastFetchError) {
+      throw lastFetchError;
+    }
+    throw new Error("Backend connection failed: MySQL database is required, local storage is disabled.");
+  }
   if (typeof window === "undefined") return [];
   const val = localStorage.getItem(key);
   return val ? JSON.parse(val) : [];
 };
 
-// Initialize the database on startup
-if (typeof window !== "undefined") {
-  initializeLocalMockDB();
-}
+// Initialize the database on startup (disabled for strict MySQL environment)
+// if (typeof window !== "undefined") {
+//   initializeLocalMockDB();
+// }
 
 export const apiService = {
   // Check active session
