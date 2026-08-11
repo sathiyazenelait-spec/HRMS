@@ -1,6 +1,6 @@
 -- Create database if not exists
-CREATE DATABASE IF NOT EXISTS zenelait_hrms;
-USE zenelait_hrms;
+-- CREATE DATABASE IF NOT EXISTS zenelait_hrms;
+-- USE zenelait_hrms;
 
 
 -- Organizations Table
