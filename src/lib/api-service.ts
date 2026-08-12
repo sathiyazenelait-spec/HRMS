@@ -1464,6 +1464,27 @@ export const apiService = {
     }
   },
 
+  async updateUserRole(userId: number, role: string): Promise<any> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/auth/users/${userId}/role`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role }),
+      });
+      if (response.ok) return await response.json();
+    } catch (e) {
+      console.warn("Backend updateUserRole offline, using localStorage fallback");
+    }
+    const users = getLocalStorageItem("mock_users");
+    const idx = users.findIndex((u) => u.id === userId);
+    if (idx !== -1) {
+      users[idx].role = role;
+      localStorage.setItem("mock_users", JSON.stringify(users));
+      return users[idx];
+    }
+    throw new Error("User not found");
+  },
+
   async getEmployeeDashboardStats(orgId: number, username: string): Promise<any> {
     try {
       const leaves = await this.getLeaves(orgId, username);

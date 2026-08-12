@@ -410,4 +410,32 @@ public class AuthController {
                     .body(Map.of("message", "Error updating password: " + e.getMessage()));
         }
     }
+
+    // Update user role
+    @PutMapping("/users/{id}/role")
+    public ResponseEntity<?> updateUserRole(@PathVariable Long id, @RequestBody Map<String, String> request) {
+        try {
+            String newRole = request.get("role");
+            if (newRole == null) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Role is required"));
+            }
+
+            Optional<User> userOpt = userRepository.findById(id);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found"));
+            }
+
+            User user = userOpt.get();
+            user.setRole(newRole.toUpperCase());
+            User saved = userRepository.save(user);
+
+            kafkaTemplate.send("authentication-events", saved.getUsername(), 
+                    "User role updated to: " + saved.getRole() + " for user: " + saved.getUsername());
+
+            return ResponseEntity.ok(saved);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error updating role: " + e.getMessage()));
+        }
+    }
 }

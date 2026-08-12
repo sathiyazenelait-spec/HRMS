@@ -147,13 +147,12 @@ function RBACPage() {
     if (!orgId) return;
     setLoading(true);
     try {
-      // Find the user object and modify role
+      // Find the user object and modify role in MySQL database
       const match = users.find(u => u.username === targetUser);
-      if (match) {
-        // Simulating role change update
-        match.role = newRole as any;
-        // In the real system, you would post to an update endpoint.
-        // We will log the audit event
+      if (match && match.id) {
+        await apiService.updateUserRole(match.id, newRole);
+        
+        // Log the audit event locally
         const newLog = {
           id: Date.now(),
           targetUser,
