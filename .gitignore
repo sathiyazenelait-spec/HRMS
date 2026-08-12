@@ -33,3 +33,7 @@ dist-ssr
 
 # Dev tools JDK/Maven installations
 .dev-tools/
+
+# Maven target outputs
+target/
+backend/target/

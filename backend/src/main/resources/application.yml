@@ -19,6 +19,8 @@ spring:
     username: 4ZDgjiN8eqjM3sn.root
     password: MNpFyFR12a7XNq3h
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      initialization-fail-timeout: -1
   jpa:
     hibernate:
       ddl-auto: update
