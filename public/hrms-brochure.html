@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenelait HRMS - Enterprise Reference Manual</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-indigo-600: #4f46e5;
+      --color-indigo-400: #818cf8;
+      --color-rose-500: #f43f5e;
+      --color-emerald-400: #34d399;
+      --color-amber-400: #fbbf24;
+      --bg-slate-950: #020617;
+      --bg-slate-900: #0f172a;
+      --bg-slate-800: #1e293b;
+      --text-slate-100: #f1f5f9;
+      --text-slate-400: #94a3b8;
+      --text-slate-500: #64748b;
+      --border-slate-800: #1e293b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-slate-950);
+      color: var(--text-slate-100);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 3rem;
+    }
+
+    /* Page container simulating A4 sheet preview */
+    .page-sheet {
+      background-color: var(--bg-slate-900);
+      border: 1px solid var(--border-slate-800);
+      border-radius: 1rem;
+      padding: 3rem;
+      position: relative;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      min-height: 1100px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .header-logo {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid var(--border-slate-800);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .logo-text {
+      font-weight: 800;
+      font-size: 1.5rem;
+      letter-spacing: 0.1em;
+    }
+
+    .logo-sub {
+      font-size: 0.7rem;
+      color: var(--text-slate-500);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.25em;
+      margin-top: -0.2rem;
+    }
+
+    .header-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--color-rose-500);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      text-align: right;
+    }
+
+    /* Page 1 Cover Styles */
+    .cover-title {
+      font-size: 3.5rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-top: 5rem;
+      background: linear-gradient(135deg, #fff 0%, var(--text-slate-400) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .cover-subtitle {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--color-rose-500);
+      margin-top: 1rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--color-rose-500);
+      padding-bottom: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .cover-desc {
+      font-size: 1.1rem;
+      color: var(--text-slate-400);
+      margin-bottom: 5rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      margin-bottom: 3rem;
+    }
+
+    .column-title {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+      color: var(--text-slate-100);
+    }
+
+    .column-text {
+      font-size: 0.85rem;
+      color: var(--text-slate-400);
+    }
+
+    .footer {
+      border-top: 1px solid var(--border-slate-800);
+      padding-top: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--text-slate-500);
+    }
+
+    .footer-page {
+      font-weight: 700;
+      color: var(--color-rose-500);
+    }
+
+    /* Page 2 TOC Styles */
+    .section-title {
+      font-size: 1.75rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+
+    .section-subtitle {
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-slate-500);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 2rem;
+    }
+
+    .toc-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      margin-bottom: 3rem;
+    }
+
+    .toc-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px dashed var(--border-slate-800);
+      padding-bottom: 0.5rem;
+    }
+
+    .toc-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text-slate-100);
+    }
+
+    .toc-page {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--color-rose-500);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .callout-box {
+      background-color: var(--bg-slate-800);
+      border-left: 4px solid var(--color-rose-500);
+      padding: 1.25rem 1.5rem;
+      border-radius: 0 0.5rem 0.5rem 0;
+      margin-top: 2rem;
+    }
+
+    .callout-text {
+      font-size: 0.85rem;
+      font-style: italic;
+      color: var(--text-slate-100);
+    }
+
+    /* Page 3 Table Styles */
+    .table-container {
+      margin: 1.5rem 0 2.5rem 0;
+      border: 1px solid var(--border-slate-800);
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+
+    .tech-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .tech-table th {
+      background-color: var(--bg-slate-800);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.75rem 1rem;
+      color: var(--text-slate-100);
+    }
+
+    .tech-table td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border-slate-800);
+      font-size: 0.85rem;
+      color: var(--text-slate-400);
+    }
+
+    .tech-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .tech-table td strong {
+      color: var(--text-slate-100);
+    }
+
+    .arch-desc {
+      font-size: 0.9rem;
+      color: var(--text-slate-400);
+      margin-bottom: 1.5rem;
+    }
+
+    /* Page 4 Subscription Plan layout */
+    .plan-card {
+      display: flex;
+      gap: 1.5rem;
+      padding: 1.5rem;
+      background-color: var(--bg-slate-800);
+      border-radius: 0.75rem;
+      border: 1px solid var(--border-slate-800);
+      align-items: flex-start;
+      margin-bottom: 1.5rem;
+    }
+
+    .plan-badge {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: #fff;
+      padding: 0.35rem 0.75rem;
+      border-radius: 0.25rem;
+      min-width: 110px;
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .badge-growth { background-color: #10b981; }
+    .badge-premium { background-color: #3b82f6; }
+    .badge-enterprise { background-color: #8b5cf6; }
+
+    .plan-info {
+      flex: 1;
+    }
+
+    .plan-desc {
+      font-size: 0.85rem;
+      color: var(--text-slate-400);
+    }
+
+    /* Page 5 Roles Access styles */
+    .role-section {
+      margin-bottom: 2rem;
+    }
+
+    .role-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--text-slate-100);
+      margin-bottom: 0.5rem;
+    }
+
+    .role-desc {
+      font-size: 0.85rem;
+      color: var(--text-slate-400);
+    }
+
+    .action-bar {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .btn {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      border: none;
+    }
+
+    .btn-primary {
+      background-color: var(--color-indigo-600);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--color-indigo-400);
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-secondary {
+      background-color: var(--bg-slate-800);
+      color: var(--text-slate-100);
+      border: 1px solid var(--border-slate-800);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--bg-slate-900);
+    }
+
+    @media print {
+      body {
+        background-color: #ffffff;
+        color: #000000;
+        padding: 0;
+      }
+
+      .action-bar {
+        display: none;
+      }
+
+      .page-sheet {
+        page-break-after: always;
+        border: none;
+        box-shadow: none;
+        background: #ffffff;
+        color: #000000;
+        padding: 0;
+        margin: 0;
+        min-height: 100%;
+      }
+
+      .cover-title {
+        color: #000000;
+        -webkit-text-fill-color: initial;
+        background: none;
+      }
+
+      .tech-table th {
+        background-color: #f1f5f9 !important;
+        color: #000000 !important;
+      }
+
+      .tech-table td, .tech-table th {
+        border-color: #cbd5e1 !important;
+        color: #000000 !important;
+      }
+
+      .plan-card {
+        background-color: #f8fafc !important;
+        border-color: #e2e8f0 !important;
+      }
+
+      .plan-badge {
+        color: #000000 !important;
+        border: 1px solid #000000 !important;
+      }
+
+      .callout-box {
+        background-color: #f8fafc !important;
+        border-left-color: #000000 !important;
+        color: #000000 !important;
+      }
+
+      .footer {
+        border-top-color: #cbd5e1 !important;
+        color: #64748b !important;
+      }
+
+      .footer-page {
+        color: #000000 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <div class="action-bar">
+      <button onclick="window.print()" class="btn btn-primary">Export as PDF / Print</button>
+      <a href="/hrms-brochure.pdf" download class="btn btn-secondary">Download Pre-built PDF</a>
+    </div>
+
+    <!-- PAGE 1: COVER SHEET -->
+    <div class="page-sheet" id="page-1">
+      <div>
+        <div class="header-logo">
+          <div>
+            <div class="logo-text">ZENELAIT</div>
+            <div class="logo-sub">I N F O  T E C H</div>
+          </div>
+          <div class="header-tag">HRMS Enterprise Guide</div>
+        </div>
+
+        <h1 class="cover-title">ZENELAIT HRMS</h1>
+        <div class="cover-subtitle">COMPREHENSIVE ROLE-BASED ENTERPRISE MANUAL</div>
+        <p class="cover-desc">
+          An all-inclusive, tier-scoped platform designed for modern workforce management. Built by Zenelait
+          InfoTech Private Limited to streamline workflows from onboarding logistics to real-time payroll analytics.
+        </p>
+      </div>
+
+      <div>
+        <div class="grid-2">
+          <div>
+            <div class="column-title">CORPORATE PROFILE</div>
+            <p class="column-text">
+              Zenelait InfoTech is a leading software engineering firm dedicated to building next-generation enterprise applications. We specialize in designing customizable SaaS platforms that integrate HRMS, CRM, and supply chain networks into unified hubs.
+            </p>
+          </div>
+          <div>
+            <div class="column-title">ZENELAIT HRMS VISION</div>
+            <p class="column-text">
+              Zenelait HRMS enables multi-tenant organizations to achieve 100% data transparency. Our platform bridges the gap between manual attendance logs and corporate auditing, delivering automated compliance checks and high-resolution PDF expense voucher compilations.
+            </p>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 2rem; border-top: 1px solid var(--border-slate-800); padding-top: 1rem;">
+          <div class="column-title" style="font-size: 0.85rem;">OFFICIAL CONTACT & SECURITY NOTICE</div>
+          <p class="column-text" style="font-size: 0.75rem;">
+            This document is proprietary information of Zenelait InfoTech Private Limited. Unauthorized reproduction or distribution of this manual is strictly prohibited. All system configurations, database connections, and REST API paths are subject to security audits.
+          </p>
+        </div>
+
+        <div class="footer">
+          <div>v2.5 Enterprise Edition</div>
+          <div>© 2026 Zenelait InfoTech Pvt. Ltd.</div>
+          <div class="footer-page">Page 1 of 5</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 2: TABLE OF CONTENTS -->
+    <div class="page-sheet" id="page-2">
+      <div>
+        <div class="header-logo">
+          <div>
+            <div class="logo-text">ZENELAIT</div>
+            <div class="logo-sub">I N F O  T E C H</div>
+          </div>
+          <div class="header-tag">HRMS Enterprise Guide</div>
+        </div>
+
+        <div class="section-title">TABLE OF CONTENTS</div>
+        <div class="section-subtitle">DOCUMENT NAVIGATION INDEX</div>
+
+        <p class="arch-desc">
+          Detailed page distribution index mapping all sections and roles within the Zenelait HRMS ecosystem:
+        </p>
+
+        <div class="toc-list">
+          <div class="toc-item">
+            <span class="toc-name">1. System Architecture & Multi-Tenant Databases</span>
+            <span class="toc-page">Page 3</span>
+          </div>
+          <div class="toc-item">
+            <span class="toc-name">2. Landing Page, OTP Gateway & Access Controls</span>
+            <span class="toc-page">Page 3</span>
+          </div>
+          <div class="toc-item">
+            <span class="toc-name">3. Super Admin Portal (Tenant Configurations & Health)</span>
+            <span class="toc-page">Page 4</span>
+          </div>
+          <div class="toc-item">
+            <span class="toc-name">4. Subscription Tier System (Modular Control & Active Plans)</span>
+            <span class="toc-page">Page 4</span>
+          </div>
+          <div class="toc-item">
+            <span class="toc-name">5. HR Admin Portal (Directories, Recruitment & Appraisals)</span>
+            <span class="toc-page">Page 5</span>
+          </div>
+          <div class="toc-item">
+            <span class="toc-name">6. Expense Ledger (Reimbursements & Printable PDF Vouchers)</span>
+            <span class="toc-page">Page 5</span>
+          </div>
+          <div class="toc-item">
+            <span class="toc-name">7. Attendance & Worklog Tracker (Timekeeping & Task Logs)</span>
+            <span class="toc-page">Page 5</span>
+          </div>
+        </div>
+
+        <div class="callout-box">
+          <p class="callout-text">
+            Security Note: User role configurations are validated dynamically at database query compile-time. Any role modification requests are routed via Spring Security filters and strict JPA constraint guards.
+          </p>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div>Zenelait HRMS Enterprise Reference Manual</div>
+        <div class="footer-page">Page 2 of 5</div>
+      </div>
+    </div>
+
+    <!-- PAGE 3: SYSTEM ARCHITECTURE -->
+    <div class="page-sheet" id="page-3">
+      <div>
+        <div class="header-logo">
+          <div>
+            <div class="logo-text">ZENELAIT</div>
+            <div class="logo-sub">I N F O  T E C H</div>
+          </div>
+          <div class="header-tag">HRMS Enterprise Guide</div>
+        </div>
+
+        <div class="section-title">SYSTEM ARCHITECTURE</div>
+        <div class="section-subtitle">BACKEND REST APIS, FRONTEND ROUTING, AND AUDIT PIPELINES</div>
+
+        <p class="arch-desc">
+          Zenelait HRMS employs a highly scalable, decoupled client-server architecture model. The client-side dashboard runs on Next.js 14 / Vite, connecting to a multi-threaded Java Spring Boot 3 enterprise backend and a high-performance MySQL/TiDB Cloud relational storage.
+        </p>
+
+        <div class="column-title" style="margin-top: 2rem;">TECHNICAL STACK DETAILS</div>
+        <div class="table-container">
+          <table class="tech-table">
+            <thead>
+              <tr>
+                <th>Layer</th>
+                <th>Technology</th>
+                <th>Responsibility</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Frontend Client</strong></td>
+                <td>Next.js 14, React, TS, Tailwind CSS</td>
+                <td>Role Dashboards, Real-time Charts, Responsive Layouts</td>
+              </tr>
+              <tr>
+                <td><strong>Java Backend</strong></td>
+                <td>Spring Boot 3, Java 21, Hibernate JPA</td>
+                <td>Business Logic, Multi-tenant Data APIs, Security Filters</td>
+              </tr>
+              <tr>
+                <td><strong>Messaging Queue</strong></td>
+                <td>Apache Kafka (Port 9092)</td>
+                <td>Asynchronous Audit Logging & Event-driven Logs</td>
+              </tr>
+              <tr>
+                <td><strong>Cache Broker</strong></td>
+                <td>Redis Cache (Port 6379)</td>
+                <td>Performance Optimization & API Response Serialization</td>
+              </tr>
+              <tr>
+                <td><strong>Database</strong></td>
+                <td>MySQL / TiDB Cloud (Port 4000)</td>
+                <td>Transactional Ledgers, User Accounts, Registry</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="column-title">SECURITY FILTER CHAIN & DECOUPLING</div>
+        <p class="arch-desc">
+          All network interactions use JSON-encoded requests. Spring Security handles endpoint protection, verifying signature validation keys encoded in client-header HTTP bearer authentication tokens on every dispatch.
+          <br><br>
+          The backend employs database connection pools (HikariCP) to interact with relational schemas, ensuring fast transactional speeds during high-concurrency workforce attendance logging.
+        </p>
+      </div>
+
+      <div class="footer">
+        <div>Zenelait HRMS Enterprise Reference Manual</div>
+        <div class="footer-page">Page 3 of 5</div>
+      </div>
+    </div>
+
+    <!-- PAGE 4: SUBSCRIPTION TIERS -->
+    <div class="page-sheet" id="page-4">
+      <div>
+        <div class="header-logo">
+          <div>
+            <div class="logo-text">ZENELAIT</div>
+            <div class="logo-sub">I N F O  T E C H</div>
+          </div>
+          <div class="header-tag">HRMS Enterprise Guide</div>
+        </div>
+
+        <div class="section-title">SUBSCRIPTION TIERS</div>
+        <div class="section-subtitle">MODULAR CONTROL AND PRICING PLAN MAPPINGS</div>
+
+        <p class="arch-desc" style="margin-bottom: 2rem;">
+          To provide flexible enterprise SaaS packages, Zenelait HRMS employs an active subscription mapping engine. The features, dashboards, and role dropdowns rendered on login screens are toggled dynamically based on the active client subscription tier.
+        </p>
+
+        <div class="plan-card">
+          <div class="plan-badge badge-growth">GROWTH PLAN</div>
+          <div class="plan-info">
+            <p class="plan-desc">
+              Designed for small operations. Unlocks employee clock-in/out registers and self-service. Excludes deep financial ledger control.
+            </p>
+          </div>
+        </div>
+
+        <div class="plan-card">
+          <div class="plan-badge badge-premium">PREMIUM PLAN</div>
+          <div class="plan-info">
+            <p class="plan-desc">
+              Adds middle-tier control. Unlocks full HR Manager control panels, Sprint velocity trackers, custom timesheets, and basic payroll metrics.
+            </p>
+          </div>
+        </div>
+
+        <div class="plan-card">
+          <div class="plan-badge badge-enterprise">ENTERPRISE PLAN</div>
+          <div class="plan-info">
+            <p class="plan-desc">
+              Full platform access. Enables the Super Admin console, multi-tenant custom organization settings, Kafka audit streams, and Redis cache tuning.
+            </p>
+          </div>
+        </div>
+
+        <div class="column-title" style="margin-top: 2rem;">DATABASE CONFIGURATION & VERIFICATION</div>
+        <p class="arch-desc">
+          The `organizations` table stores subscription levels under the `plan_type` column (STANDARD, MIDLEVEL, ENTERPRISE). When a user authenticates, the handler queries `GET /api/superadmin/organizations` to fetch their tenant context, parsing the subscription plan type to dynamically configure permission matrices on the frontend client.
+        </p>
+      </div>
+
+      <div class="footer">
+        <div>Zenelait HRMS Enterprise Reference Manual</div>
+        <div class="footer-page">Page 4 of 5</div>
+      </div>
+    </div>
+
+    <!-- PAGE 5: ROLE-BASED ACCESS -->
+    <div class="page-sheet" id="page-5">
+      <div>
+        <div class="header-logo">
+          <div>
+            <div class="logo-text">ZENELAIT</div>
+            <div class="logo-sub">I N F O  T E C H</div>
+          </div>
+          <div class="header-tag">HRMS Enterprise Guide</div>
+        </div>
+
+        <div class="section-title">ROLE-BASED ACCESS</div>
+        <div class="section-subtitle">ROLE MAPPING MATRIX AND PERMISSIONS CONTROL</div>
+
+        <p class="arch-desc" style="margin-bottom: 2.5rem;">
+          Zenelait HRMS provides strict role-based access control (RBAC) to ensure multi-tenant security isolation. Users are assigned to one of three primary system roles, each unlocking a dedicated set of system controls:
+        </p>
+
+        <div class="role-section">
+          <div class="role-title">SUPERADMIN</div>
+          <p class="role-desc">
+            Accesses the platform console. Creates tenant organizations, configures active modules, assigns subscription plan tiers, and provisions primary HR Administrator accounts. Bypasses standard organization scope limits.
+          </p>
+        </div>
+
+        <div class="role-section">
+          <div class="role-title">ADMIN (HR MANAGER)</div>
+          <p class="role-desc">
+            Manages the organization roster. Approves or rejects leave requests, schedules project sprints and backlogs, uploads client invoices, processes employee payroll, and updates individual employee matrix keys.
+          </p>
+        </div>
+
+        <div class="role-section">
+          <div class="role-title">EMPLOYEE (TENANT STAFF)</div>
+          <p class="role-desc">
+            Maintains attendance clocks, logs timesheets against active projects, files reimbursement expense claims, uploads receipts, and downloads certified PDF payment vouchers.
+          </p>
+        </div>
+
+        <div style="margin-top: 3rem; border-top: 2px solid var(--color-indigo-600); padding-top: 1.5rem;">
+          <div class="logo-text" style="color: var(--color-indigo-400); font-size: 1.25rem;">Zenelait HRMS - Secure. Compliant. Scalable.</div>
+          <p class="arch-desc" style="margin-top: 0.5rem;">
+            Enterprise software architecture engineered to optimize modern corporate workforce networks.
+          </p>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div>Zenelait HRMS Enterprise Reference Manual</div>
+        <div class="footer-page">Page 5 of 5</div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
