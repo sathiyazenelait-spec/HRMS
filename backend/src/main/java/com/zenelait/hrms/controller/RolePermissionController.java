@@ -1,7 +1,9 @@
 package com.zenelait.hrms.controller;
 
 import com.zenelait.hrms.entity.RolePermission;
+import com.zenelait.hrms.entity.RoleAuditLog;
 import com.zenelait.hrms.repository.RolePermissionRepository;
+import com.zenelait.hrms.repository.RoleAuditLogRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,10 +20,30 @@ public class RolePermissionController {
     @Autowired
     private RolePermissionRepository rolePermissionRepository;
 
+    @Autowired
+    private RoleAuditLogRepository roleAuditLogRepository;
+
     @GetMapping("/permissions")
     public ResponseEntity<?> getPermissions(@RequestParam Long orgId) {
         List<RolePermission> list = rolePermissionRepository.findByOrganizationId(orgId);
         return ResponseEntity.ok(list);
+    }
+
+    @GetMapping("/audit-logs")
+    public ResponseEntity<?> getAuditLogs(@RequestParam Long orgId) {
+        List<RoleAuditLog> list = roleAuditLogRepository.findByOrganizationIdOrderByCreatedAtDesc(orgId);
+        return ResponseEntity.ok(list);
+    }
+
+    @PostMapping("/audit-logs")
+    public ResponseEntity<?> saveAuditLog(@RequestBody RoleAuditLog log) {
+        if (log.getTargetUser() == null || log.getActor() == null ||
+            log.getOldRole() == null || log.getNewRole() == null ||
+            log.getOrganizationId() == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Missing required audit log parameters"));
+        }
+        RoleAuditLog saved = roleAuditLogRepository.save(log);
+        return ResponseEntity.ok(saved);
     }
 
     @PostMapping("/permissions")

@@ -156,14 +156,15 @@ function ProjectsDashboard() {
 
   return (
     <div className="space-y-6 text-left">
-      <div className="flex justify-between items-center">
-        <PageHeader title="Projects Portfolio" description="Portfolio view of every project with owners, budgets, RAG status and milestone delivery health." />
-        {isHR && (
+      <PageHeader 
+        title="Projects Portfolio" 
+        description="Portfolio view of every project with owners, budgets, RAG status and milestone delivery health."
+        actions={isHR && (
           <Button onClick={handleOpenCreate} className="gap-1 bg-indigo-600 hover:bg-indigo-500 cursor-pointer">
             <Plus className="h-4 w-4" /> Add Project
           </Button>
         )}
-      </div>
+      />
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

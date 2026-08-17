@@ -194,7 +194,16 @@ function SuperadminDashboard() {
     loadPlans();
     loadQueries();
     loadHRs();
-    setBlocks(apiService.getLandingPageSchema());
+    
+    const fetchSchema = async () => {
+      try {
+        const schemaData = await apiService.getLandingPageSchema();
+        setBlocks(schemaData);
+      } catch (err) {
+        console.error("Error loading landing page schema:", err);
+      }
+    };
+    fetchSchema();
   }, []);
 
   const loadPlans = async () => {
@@ -385,10 +394,14 @@ function SuperadminDashboard() {
     setBlocks(newBlocks);
   };
 
-  const handleSaveLayout = () => {
-    apiService.saveLandingPageSchema(blocks);
-    setBuilderSuccess("Layout successfully published to the live landing page!");
-    setTimeout(() => setBuilderSuccess(""), 3000);
+  const handleSaveLayout = async () => {
+    try {
+      await apiService.saveLandingPageSchema(blocks);
+      setBuilderSuccess("Layout successfully published to the live landing page!");
+      setTimeout(() => setBuilderSuccess(""), 3000);
+    } catch (e) {
+      alert("Failed to save layout schema: database error.");
+    }
   };
 
   if (!authorized) {

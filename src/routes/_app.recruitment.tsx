@@ -137,7 +137,7 @@ function RecruitmentPage() {
       />
 
       <Tabs defaultValue="pipeline" className="space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
           <TabsList className="bg-slate-900 border border-slate-800">
             <TabsTrigger value="pipeline" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
               Candidates Pipeline
@@ -147,7 +147,7 @@ function RecruitmentPage() {
             </TabsTrigger>
           </TabsList>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {isAdmin && (
               <>
                 <Dialog open={jobModalOpen} onOpenChange={setJobModalOpen}>
@@ -283,7 +283,8 @@ function RecruitmentPage() {
 
         {/* pipeline Tab */}
         <TabsContent value="pipeline" className="outline-none">
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 overflow-x-auto min-w-[1000px] pb-4">
+          <div className="w-full overflow-x-auto pb-4">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 md:min-w-[1000px]">
             {PIPELINE_STAGES.map(stage => {
               const stageCandidates = candidates.filter(c => c.stage === stage.key);
               return (
@@ -355,7 +356,8 @@ function RecruitmentPage() {
               );
             })}
           </div>
-        </TabsContent>
+        </div>
+      </TabsContent>
 
         {/* Jobs Tab */}
         <TabsContent value="jobs" className="outline-none">

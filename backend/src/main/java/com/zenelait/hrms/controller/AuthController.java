@@ -438,4 +438,42 @@ public class AuthController {
                     .body(Map.of("message", "Error updating role: " + e.getMessage()));
         }
     }
+
+    // Update user profile credentials (gmail and mobile)
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateProfile(@RequestBody Map<String, String> request) {
+        try {
+            String username = request.get("username");
+            String gmail = request.get("gmail");
+            String mobile = request.get("mobile");
+
+            if (username == null || gmail == null || mobile == null) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Username, gmail, and mobile are required"));
+            }
+
+            Optional<User> userOpt = userRepository.findByUsername(username);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found"));
+            }
+
+            User user = userOpt.get();
+            user.setGmail(gmail);
+            user.setMobile(mobile);
+            User saved = userRepository.save(user);
+
+            kafkaTemplate.send("authentication-events", saved.getUsername(),
+                    "User profile credentials updated: gmail=" + saved.getGmail() + ", mobile=" + saved.getMobile());
+
+            return ResponseEntity.ok(Map.of(
+                    "id", saved.getId(),
+                    "username", saved.getUsername(),
+                    "gmail", saved.getGmail(),
+                    "mobile", saved.getMobile(),
+                    "role", saved.getRole()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error updating profile details: " + e.getMessage()));
+        }
+    }
 }

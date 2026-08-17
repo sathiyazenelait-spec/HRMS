@@ -74,18 +74,9 @@ function RBACPage() {
       const perms = await apiService.getRolePermissions(orgId);
       setPermissions(perms);
 
-      // Load mock role change audit logs
-      const savedLogs = localStorage.getItem("mock_role_audit_logs");
-      if (savedLogs) {
-        setAuditLogs(JSON.parse(savedLogs));
-      } else {
-        const initialLogs = [
-          { id: 1, targetUser: "bobjohnson", actor: "baluacme", oldRole: "EMPLOYEE", newRole: "PM", timestamp: "2026-08-05 10:14" },
-          { id: 2, targetUser: "alicesmith", actor: "baluacme", oldRole: "EMPLOYEE", newRole: "QA", timestamp: "2026-08-04 14:22" }
-        ];
-        localStorage.setItem("mock_role_audit_logs", JSON.stringify(initialLogs));
-        setAuditLogs(initialLogs);
-      }
+      // Load role change audit logs from MySQL
+      const logs = await apiService.getRoleAuditLogs(orgId);
+      setAuditLogs(logs);
     } catch (e) {
       console.error(e);
     } finally {
@@ -152,18 +143,13 @@ function RBACPage() {
       if (match && match.id) {
         await apiService.updateUserRole(match.id, newRole);
         
-        // Log the audit event locally
-        const newLog = {
-          id: Date.now(),
+        // Log the audit event to MySQL database
+        await apiService.saveRoleAuditLog(orgId, {
           targetUser,
           actor: currentUser?.username || "administrator",
           oldRole,
-          newRole,
-          timestamp: new Date().toISOString().replace("T", " ").substring(0, 16),
-        };
-        const updatedLogs = [newLog, ...auditLogs];
-        setAuditLogs(updatedLogs);
-        localStorage.setItem("mock_role_audit_logs", JSON.stringify(updatedLogs));
+          newRole
+        });
       }
       await loadData();
     } catch (e) {

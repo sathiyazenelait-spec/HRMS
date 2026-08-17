@@ -4,10 +4,12 @@ import com.zenelait.hrms.entity.SubscriptionPlan;
 import com.zenelait.hrms.entity.ContactQuery;
 import com.zenelait.hrms.entity.SystemNotification;
 import com.zenelait.hrms.entity.Organization;
+import com.zenelait.hrms.entity.LandingPageBlock;
 import com.zenelait.hrms.repository.SubscriptionPlanRepository;
 import com.zenelait.hrms.repository.ContactQueryRepository;
 import com.zenelait.hrms.repository.SystemNotificationRepository;
 import com.zenelait.hrms.repository.OrganizationRepository;
+import com.zenelait.hrms.repository.LandingPageBlockRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +36,9 @@ public class SystemOperationController {
 
     @Autowired
     private OrganizationRepository organizationRepository;
+
+    @Autowired
+    private LandingPageBlockRepository landingPageBlockRepository;
 
     // Create a pricing plan
     @PostMapping("/plan")
@@ -150,5 +155,41 @@ public class SystemOperationController {
     public ResponseEntity<?> getNotifications(@RequestParam Long orgId) {
         List<SystemNotification> notifications = notificationRepository.findActiveNotifications(orgId);
         return ResponseEntity.ok(notifications);
+    }
+
+    // Retrieve landing page layout schema blocks
+    @GetMapping("/landing-schema")
+    public ResponseEntity<?> getLandingSchema() {
+        List<LandingPageBlock> list = landingPageBlockRepository.findAllByOrderByDisplayOrderAsc();
+        return ResponseEntity.ok(list);
+    }
+
+    // Save/Update landing page schema layout
+    @PostMapping("/landing-schema")
+    public ResponseEntity<?> saveLandingSchema(@RequestBody List<LandingPageBlock> blocks) {
+        if (blocks == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Schema block list is required"));
+        }
+        for (int i = 0; i < blocks.size(); i++) {
+            LandingPageBlock req = blocks.get(i);
+            req.setDisplayOrder(i);
+            
+            Optional<LandingPageBlock> opt = landingPageBlockRepository.findByBlockId(req.getBlockId());
+            LandingPageBlock target;
+            if (opt.isPresent()) {
+                target = opt.get();
+                target.setTitle(req.getTitle());
+                target.setSubtitle(req.getSubtitle());
+                target.setCtaText(req.getCtaText());
+                target.setVisible(req.getVisible());
+                target.setContentList(req.getContentList());
+                target.setImageUrl(req.getImageUrl());
+                target.setDisplayOrder(i);
+            } else {
+                target = req;
+            }
+            landingPageBlockRepository.save(target);
+        }
+        return ResponseEntity.ok(Map.of("message", "Landing page schema layout successfully saved"));
     }
 }

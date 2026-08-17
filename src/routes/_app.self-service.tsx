@@ -91,14 +91,9 @@ function SelfServicePage() {
     setLoading(true);
     setProfileSuccess("");
     try {
-      // Update locally in localStorage session
-      const session = localStorage.getItem("hrms_user_session");
-      if (session) {
-        const parsed = JSON.parse(session);
-        parsed.gmail = gmail;
-        parsed.mobile = mobile;
-        localStorage.setItem("hrms_user_session", JSON.stringify(parsed));
-      }
+      // Update in MySQL database via backend
+      await apiService.updateUserProfile(profileUser.username, gmail, mobile);
+      
       setProfileSuccess("Profile changes updated successfully!");
       setTimeout(() => setProfileSuccess(""), 4000);
       await loadData();

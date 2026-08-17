@@ -377,6 +377,48 @@ export const apiService = {
     localStorage.removeItem("hrms_user_session");
   },
 
+  // Perform user profile details update in MySQL database
+  async updateUserProfile(username: string, gmail: string, mobile: string): Promise<User> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/auth/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, gmail, mobile }),
+      });
+      if (response.ok) {
+        const user = await response.json();
+        // Update user session locally
+        const session = localStorage.getItem("hrms_user_session");
+        if (session) {
+          const parsed = JSON.parse(session);
+          parsed.gmail = user.gmail;
+          parsed.mobile = user.mobile;
+          localStorage.setItem("hrms_user_session", JSON.stringify(parsed));
+        }
+        return user;
+      }
+    } catch (e) {
+      console.warn("Backend updateUserProfile offline, fallback local update");
+    }
+    // Fallback: update mock users list in local storage
+    const users = getLocalStorageItem("mock_users");
+    const idx = users.findIndex(u => u.username === username);
+    if (idx !== -1) {
+      users[idx] = { ...users[idx], gmail, mobile };
+      localStorage.setItem("mock_users", JSON.stringify(users));
+      
+      const session = localStorage.getItem("hrms_user_session");
+      if (session) {
+        const parsed = JSON.parse(session);
+        parsed.gmail = gmail;
+        parsed.mobile = mobile;
+        localStorage.setItem("hrms_user_session", JSON.stringify(parsed));
+      }
+      return users[idx];
+    }
+    throw new Error("User not found");
+  },
+
   // Register new organization tenant
   async registerUser(requestData: {
     username: string;
@@ -572,17 +614,58 @@ export const apiService = {
     }
   },
 
-  // Get landing page layout schema
-  getLandingPageSchema(): LandingPageBlock[] {
+  // Get landing page layout schema from backend database
+  async getLandingPageSchema(): Promise<LandingPageBlock[]> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/system-ops/landing-schema`);
+      if (response.ok) {
+        const list = await response.json();
+        return list.map((b: any) => ({
+          id: b.blockId, // Map blockId from database to frontend id
+          type: b.type,
+          title: b.title,
+          subtitle: b.subtitle,
+          ctaText: b.ctaText || undefined,
+          visible: b.visible,
+          contentList: b.contentList ? JSON.parse(b.contentList) : [],
+          imageUrl: b.imageUrl || undefined
+        }));
+      }
+    } catch (e) {
+      console.warn("Backend getLandingPageSchema offline, using default schema");
+    }
+    // Simple local fallback (or defaultLandingPageSchema)
     if (typeof window === "undefined") return defaultLandingPageSchema;
     const data = localStorage.getItem("landing_page_schema");
     return data ? JSON.parse(data) : defaultLandingPageSchema;
   },
 
-  // Save landing page layout schema
-  saveLandingPageSchema(schema: LandingPageBlock[]): void {
-    if (typeof window === "undefined") return;
-    localStorage.setItem("landing_page_schema", JSON.stringify(schema));
+  // Save landing page layout schema to backend database
+  async saveLandingPageSchema(schema: LandingPageBlock[]): Promise<void> {
+    try {
+      const payload = schema.map((b, idx) => ({
+        blockId: b.id,
+        type: b.type,
+        title: b.title,
+        subtitle: b.subtitle,
+        ctaText: b.ctaText || null,
+        visible: b.visible,
+        contentList: b.contentList ? JSON.stringify(b.contentList) : null,
+        imageUrl: b.imageUrl || null,
+        displayOrder: idx
+      }));
+      const response = await fetch(`${BACKEND_URL}/system-ops/landing-schema`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (response.ok) return;
+    } catch (e) {
+      console.warn("Backend saveLandingPageSchema offline, saving locally");
+    }
+    if (typeof window !== "undefined") {
+      localStorage.setItem("landing_page_schema", JSON.stringify(schema));
+    }
   },
 
   // Fetch users in same organization
@@ -2476,6 +2559,40 @@ export const apiService = {
     list.push(newPerm);
     localStorage.setItem("mock_role_permissions", JSON.stringify(list));
     return newPerm;
+  },
+
+  async getRoleAuditLogs(orgId: number): Promise<any[]> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/rbac/audit-logs?orgId=${orgId}`);
+      if (response.ok) {
+        const list = await response.json();
+        return list.map((l: any) => ({
+          ...l,
+          timestamp: l.createdAt ? l.createdAt.replace("T", " ").substring(0, 16) : ""
+        }));
+      }
+    } catch (e) {
+      console.warn("Backend getRoleAuditLogs offline, using localStorage fallback");
+    }
+    return getLocalStorageItem("mock_role_audit_logs");
+  },
+
+  async saveRoleAuditLog(orgId: number, auditData: any): Promise<any> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/rbac/audit-logs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...auditData, organizationId: orgId }),
+      });
+      if (response.ok) return await response.json();
+    } catch (e) {
+      console.warn("Backend saveRoleAuditLog offline, using localStorage fallback");
+    }
+    const list = getLocalStorageItem("mock_role_audit_logs");
+    const newLog = { ...auditData, id: Date.now(), organizationId: orgId };
+    list.push(newLog);
+    localStorage.setItem("mock_role_audit_logs", JSON.stringify(list));
+    return newLog;
   },
 
   // HR administrators management for Superadmin

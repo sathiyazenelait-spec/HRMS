@@ -496,3 +496,47 @@ VALUES
 ('QA', 'Projects', TRUE, TRUE, FALSE, 3)
 ON DUPLICATE KEY UPDATE can_read = can_read;
 
+
+-- Role Audit Logs Table
+CREATE TABLE IF NOT EXISTS role_audit_logs (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    target_user VARCHAR(100) NOT NULL,
+    actor VARCHAR(100) NOT NULL,
+    old_role VARCHAR(50) NOT NULL,
+    new_role VARCHAR(50) NOT NULL,
+    organization_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Seed Sample Role Audit Logs
+INSERT INTO role_audit_logs (id, target_user, actor, old_role, new_role, organization_id, created_at)
+VALUES
+(1, 'bobjohnson', 'baluacme', 'EMPLOYEE', 'PM', 3, '2026-08-05 10:14:00'),
+(2, 'alicesmith', 'baluacme', 'EMPLOYEE', 'QA', 3, '2026-08-04 14:22:00')
+ON DUPLICATE KEY UPDATE target_user = target_user;
+
+
+-- Landing Page Blocks Table
+CREATE TABLE IF NOT EXISTS landing_page_blocks (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    block_id VARCHAR(100) NOT NULL UNIQUE,
+    type VARCHAR(50) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    subtitle VARCHAR(1000) NOT NULL,
+    cta_text VARCHAR(255),
+    visible BOOLEAN NOT NULL DEFAULT TRUE,
+    content_list VARCHAR(2000),
+    image_url VARCHAR(1000),
+    display_order INT NOT NULL
+);
+
+-- Seed Default Landing Page Blocks
+INSERT INTO landing_page_blocks (id, block_id, type, title, subtitle, cta_text, visible, content_list, image_url, display_order)
+VALUES
+(1, 'hero-1', 'hero', 'Zenelait Workforce Network', 'A next-generation HRM system built with virtual threads, Redis caching, and Kafka audit streams for zero load latency.', 'Get Started Now', TRUE, NULL, 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&auto=format&fit=crop&q=80', 0),
+(2, 'features-1', 'features', 'Powerful Enterprise Modules', 'Engineered for heavy concurrency and multi-tenant isolation.', NULL, TRUE, '["Custom Tenant Provisioning (IT, Marketing, Sales, Corporate)","Redis Cache Serialization for high-speed API data fetch","Kafka Messaging Audit for real-time creation logs","Java Virtual Thread-per-task concurrency execution"]', NULL, 1),
+(3, 'pricing-1', 'pricing', 'Flexible Subscriptions', 'Select the plan type that matches your company scale.', NULL, TRUE, '["Standard Plan - Up to 150 members, default KPIs","Midlevel Plan - Up to 500 members, advanced tracking","Enterprise Plan - Unlimited members, dedicated cluster support"]', NULL, 2),
+(4, 'testimonials-1', 'testimonials', 'Client Feedback', 'Read what organization administrators say about Zenelait.', NULL, TRUE, '["Initech: \\"The IT dashboard gives us precise sprint velocity and resource details.\\"","AdVenture Inc: \\"The Marketing dashboard''s ROAS tracking completely replaced our spreadsheets.\\""]', NULL, 3)
+ON DUPLICATE KEY UPDATE title = title;
+
+

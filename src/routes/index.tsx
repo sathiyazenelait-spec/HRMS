@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { apiService } from "../lib/api-service";
+import { useState, useEffect } from "react";
+import { apiService, LandingPageBlock } from "../lib/api-service";
 import {
   Sparkles,
   Users,
@@ -41,7 +41,20 @@ export const Route = createFileRoute("/")({
 });
 
 function LandingPage() {
-  const [schema] = useState(() => apiService.getLandingPageSchema());
+  const [schema, setSchema] = useState<LandingPageBlock[]>([]);
+
+  useEffect(() => {
+    const fetchSchema = async () => {
+      try {
+        const data = await apiService.getLandingPageSchema();
+        setSchema(data);
+      } catch (err) {
+        console.error("Error loading landing page schema:", err);
+      }
+    };
+    fetchSchema();
+  }, []);
+
   const [activeTab, setActiveTab] = useState<"hr" | "payroll" | "delivery">("hr");
   const [employeeCount, setEmployeeCount] = useState<number>(25);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annually">("annually");

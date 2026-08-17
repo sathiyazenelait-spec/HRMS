@@ -252,7 +252,7 @@ function PayrollPage() {
           {activeTab === "payroll" && (
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
                   <div>
                     <CardTitle className="text-base flex items-center gap-1.5">
                       <Wallet className="h-5 w-5 text-indigo-500" />
@@ -260,7 +260,7 @@ function PayrollPage() {
                     </CardTitle>
                     <CardDescription>Adjust basic pay scale, bonuses/allowances, and statutory deductions for the current calendar cycle.</CardDescription>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 shrink-0">
                     <Button onClick={handleAutoCalculatePayroll} disabled={loading} variant="outline" className="border-indigo-600/30 hover:bg-indigo-500/10 cursor-pointer text-xs h-9">
                       <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
                       Auto-Calculate LOP
@@ -390,14 +390,14 @@ function PayrollPage() {
               {/* Invoices register list */}
               <Card className="lg:col-span-8">
                 <CardHeader>
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
                     <div>
                       <CardTitle className="text-base flex items-center gap-1.5">
                         <Receipt className="h-5 w-5 text-indigo-500" />
                         Invoice Transaction Register
                       </CardTitle>
                     </div>
-                    <Button onClick={handleAutoGenerateInvoices} disabled={loading} variant="outline" className="border-indigo-600/30 hover:bg-indigo-500/10 cursor-pointer text-xs h-9">
+                    <Button onClick={handleAutoGenerateInvoices} disabled={loading} variant="outline" className="border-indigo-600/30 hover:bg-indigo-500/10 cursor-pointer text-xs h-9 shrink-0">
                       <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
                       Auto-Generate Invoices
                     </Button>
