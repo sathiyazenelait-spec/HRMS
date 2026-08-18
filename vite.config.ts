@@ -13,6 +13,9 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    optimizeDeps: {
+      include: ["jspdf", "html2canvas"],
+    },
     server: {
       watch: {
         ignored: ["**/backend/**"],
