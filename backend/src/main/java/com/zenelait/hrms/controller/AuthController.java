@@ -3,14 +3,27 @@ package com.zenelait.hrms.controller;
 import com.zenelait.hrms.entity.Organization;
 import com.zenelait.hrms.entity.User;
 import com.zenelait.hrms.entity.PasswordResetRequest;
+import com.zenelait.hrms.entity.Department;
+import com.zenelait.hrms.entity.Project;
+import com.zenelait.hrms.entity.Sprint;
+import com.zenelait.hrms.entity.Ticket;
+import com.zenelait.hrms.entity.Course;
+import com.zenelait.hrms.entity.OnboardingTask;
 import com.zenelait.hrms.repository.OrganizationRepository;
 import com.zenelait.hrms.repository.UserRepository;
 import com.zenelait.hrms.repository.PasswordResetRequestRepository;
+import com.zenelait.hrms.repository.DepartmentRepository;
+import com.zenelait.hrms.repository.ProjectRepository;
+import com.zenelait.hrms.repository.SprintRepository;
+import com.zenelait.hrms.repository.TicketRepository;
+import com.zenelait.hrms.repository.CourseRepository;
+import com.zenelait.hrms.repository.OnboardingTaskRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDateTime;
 
 import org.springframework.core.env.Environment;
 
@@ -34,6 +47,24 @@ public class AuthController {
 
     @Autowired
     private PasswordResetRequestRepository passwordResetRequestRepository;
+
+    @Autowired
+    private DepartmentRepository departmentRepository;
+
+    @Autowired
+    private ProjectRepository projectRepository;
+
+    @Autowired
+    private SprintRepository sprintRepository;
+
+    @Autowired
+    private TicketRepository ticketRepository;
+
+    @Autowired
+    private CourseRepository courseRepository;
+
+    @Autowired
+    private OnboardingTaskRepository onboardingTaskRepository;
 
     @Autowired
     private KafkaTemplate<String, String> kafkaTemplate;
@@ -151,6 +182,170 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "Registration error: " + e.getMessage()));
+        }
+    }
+
+    // Trial Registration endpoint
+    @PostMapping("/trial-register")
+    public ResponseEntity<?> trialRegister(@RequestBody Map<String, String> request) {
+        try {
+            String username = request.get("username");
+            String gmail = request.get("gmail");
+            String mobile = request.get("mobile");
+            String password = request.get("password");
+            String confirmPassword = request.get("confirmPassword");
+            String orgName = request.get("orgName");
+
+            if (username == null || gmail == null || mobile == null || password == null ||
+                confirmPassword == null || orgName == null) {
+                return ResponseEntity.badRequest().body(Map.of("message", "All fields are required"));
+            }
+
+            if (!password.equals(confirmPassword)) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Passwords do not match"));
+            }
+
+            if (userRepository.existsByUsername(username)) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(Map.of("message", "Username already exists"));
+            }
+
+            if (organizationRepository.existsByNameIgnoreCase(orgName)) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(Map.of("message", "Organization name already exists"));
+            }
+
+            // Generate Organization Code: HRMS-TRIAL-[5-digit random number]
+            int random5Digits = 10000 + new java.util.Random().nextInt(90000);
+            String orgCode = "HRMS-TRIAL-" + random5Digits;
+
+            // Create temporary trial Organization
+            Organization org = Organization.builder()
+                    .name(orgName)
+                    .orgType("IT")
+                    .orgCode(orgCode)
+                    .ownerGmail(gmail)
+                    .ownerMobile(mobile)
+                    .planType("STANDARD")
+                    .otpCode("TRIAL")
+                    .isDemo(true)
+                    .expiresAt(LocalDateTime.now().plusDays(3))
+                    .build();
+
+            Organization savedOrg = organizationRepository.save(org);
+
+            // Create new Admin User for the Organization
+            User user = User.builder()
+                    .username(username)
+                    .gmail(gmail)
+                    .mobile(mobile)
+                    .password(password)
+                    .role("ADMIN") // Trial creator is the organization Admin
+                    .organization(savedOrg)
+                    .build();
+
+            User savedUser = userRepository.save(user);
+
+            // Seed demo data for the organization to be fully featured
+            seedDemoData(savedOrg, username);
+
+            kafkaTemplate.send("authentication-events", savedUser.getUsername(),
+                    "New Trial User registered: " + savedUser.getUsername() + " for trial org: " + savedOrg.getName());
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                    "id", savedUser.getId(),
+                    "username", savedUser.getUsername(),
+                    "gmail", savedUser.getGmail(),
+                    "role", savedUser.getRole(),
+                    "organization", savedOrg
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Trial registration error: " + e.getMessage()));
+        }
+    }
+
+    private void seedDemoData(Organization org, String adminUsername) {
+        try {
+            // 1. Seed Department
+            Department dept = Department.builder()
+                    .name("Engineering")
+                    .description("Core software engineering team")
+                    .managerUsername(adminUsername)
+                    .organizationId(org.getId())
+                    .build();
+            departmentRepository.save(dept);
+
+            // 2. Seed Project
+            Project project = Project.builder()
+                    .name("Zenelait Integration")
+                    .description("Migrate core services to Zenelait Suite")
+                    .client("Internal")
+                    .status("Active")
+                    .budget(50000.0)
+                    .startDate(java.time.LocalDate.now())
+                    .endDate(java.time.LocalDate.now().plusMonths(3))
+                    .organizationId(org.getId())
+                    .build();
+            projectRepository.save(project);
+
+            // 3. Seed Sprint
+            Sprint sprint = Sprint.builder()
+                    .name("Sprint 1 - Foundation")
+                    .goal("Setup initial configuration and verify environments")
+                    .startDate(java.time.LocalDate.now())
+                    .endDate(java.time.LocalDate.now().plusDays(14))
+                    .status("Active")
+                    .organization(org)
+                    .build();
+            Sprint savedSprint = sprintRepository.save(sprint);
+
+            // 4. Seed Ticket
+            Ticket ticket = Ticket.builder()
+                    .ticketCode("TSK-101")
+                    .title("Verify Organization Settings")
+                    .description("Review the modules and setup work mode preferences")
+                    .points(5)
+                    .priority("High")
+                    .assignee(adminUsername)
+                    .sprintId(String.valueOf(savedSprint.getId()))
+                    .status("To Do")
+                    .organization(org)
+                    .build();
+            ticketRepository.save(ticket);
+
+            // 5. Seed Course
+            Course course = Course.builder()
+                    .title("Getting Started with Zenelait HRMS")
+                    .duration(2)
+                    .targetRole("All")
+                    .description("Learn how to use Zenelait to manage your work, logs, and profile.")
+                    .driveLink("https://drive.google.com/drive/folders/mock-getting-started")
+                    .organizationId(org.getId())
+                    .build();
+            courseRepository.save(course);
+
+            // 6. Seed Standard Onboarding Tasks
+            String[] taskNames = {
+                "Submit tax declarations",
+                "Fill emergency contact info",
+                "Setup profile credentials",
+                "Explore the interactive modules"
+            };
+            String[] categories = {"DOCUMENTS", "WELCOME", "WELCOME", "TEAM"};
+            for (int i = 0; i < taskNames.length; i++) {
+                OnboardingTask task = OnboardingTask.builder()
+                        .username(adminUsername)
+                        .taskName(taskNames[i])
+                        .category(categories[i])
+                        .completed(false)
+                        .organizationId(org.getId())
+                        .build();
+                onboardingTaskRepository.save(task);
+            }
+        } catch (Exception e) {
+            System.err.println("Error seeding demo data for org " + org.getId() + ": " + e.getMessage());
         }
     }
 

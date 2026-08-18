@@ -62,6 +62,7 @@ function LandingPage() {
   // Auth modals state
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [registerTab, setRegisterTab] = useState<"trial" | "standard">("trial");
 
   // Login Form States
   const [loginUsername, setLoginUsername] = useState("");
@@ -179,18 +180,30 @@ function LandingPage() {
     }
 
     try {
-      await apiService.registerUser({
-        username: regUsername,
-        gmail: regGmail,
-        mobile: regMobile,
-        password: regPassword,
-        confirmPassword: regConfirmPassword,
-        orgName: regOrgName,
-        orgCode: regOrgCode,
-        otp: regOtp,
-      });
+      if (registerTab === "trial") {
+        await apiService.registerTrialUser({
+          username: regUsername,
+          gmail: regGmail,
+          mobile: regMobile,
+          password: regPassword,
+          confirmPassword: regConfirmPassword,
+          orgName: regOrgName,
+        });
+        setRegSuccess("Trial organization and HR account created successfully! Redirecting to login...");
+      } else {
+        await apiService.registerUser({
+          username: regUsername,
+          gmail: regGmail,
+          mobile: regMobile,
+          password: regPassword,
+          confirmPassword: regConfirmPassword,
+          orgName: regOrgName,
+          orgCode: regOrgCode,
+          otp: regOtp,
+        });
+        setRegSuccess("User registered successfully! Redirecting to login...");
+      }
 
-      setRegSuccess("User registered successfully! Redirecting to login...");
       setRegUsername("");
       setRegGmail("");
       setRegMobile("");
@@ -275,13 +288,16 @@ function LandingPage() {
                 </p>
 
                 <div className="flex flex-wrap justify-center gap-4 mb-16">
-                  <Link
-                    to="/dashboard"
-                    className="px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white text-base shadow-[0_0_30px_rgba(79,70,229,0.4)] transition-all duration-300 hover:scale-[1.03] flex items-center gap-2"
+                  <button
+                    onClick={() => {
+                      setRegisterTab("trial");
+                      setIsRegisterOpen(true);
+                    }}
+                    className="px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-white text-base shadow-[0_0_30px_rgba(79,70,229,0.4)] transition-all duration-300 hover:scale-[1.03] flex items-center gap-2 cursor-pointer border-none"
                   >
-                    {block.ctaText || "Launch Platform Now"}
+                    Start 3-Day Free Trial
                     <ArrowRight className="h-5 w-5" />
-                  </Link>
+                  </button>
                   <a
                     href="#preview"
                     className="px-8 py-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 font-semibold text-slate-300 hover:text-white transition-all duration-300 flex items-center gap-2"
@@ -865,11 +881,12 @@ function LandingPage() {
                   <button
                     onClick={() => {
                       setIsLoginOpen(false);
+                      setRegisterTab("trial");
                       setIsRegisterOpen(true);
                     }}
                     className="text-indigo-400 hover:underline font-medium cursor-pointer"
                   >
-                    Register Organization Owner
+                    Start Free Trial / Register
                   </button>
                 </div>
               </>
@@ -1038,7 +1055,32 @@ function LandingPage() {
               <div className="flex h-8 w-8 items-center justify-center rounded bg-indigo-600 text-white">
                 <Sparkles className="h-4 w-4" />
               </div>
-              <span className="text-lg font-bold">Register Admin User</span>
+              <span className="text-lg font-bold">{registerTab === "trial" ? "Start 3-Day Free Trial" : "Register Admin User"}</span>
+            </div>
+
+            <div className="flex border-b border-slate-800 mb-6">
+              <button
+                type="button"
+                onClick={() => setRegisterTab("trial")}
+                className={`flex-1 pb-3 text-sm font-semibold border-b-2 transition-all cursor-pointer bg-transparent border-none ${
+                  registerTab === "trial"
+                    ? "border-indigo-500 text-white"
+                    : "border-transparent text-slate-400 hover:text-slate-300"
+                }`}
+              >
+                3-Day Free Trial
+              </button>
+              <button
+                type="button"
+                onClick={() => setRegisterTab("standard")}
+                className={`flex-1 pb-3 text-sm font-semibold border-b-2 transition-all cursor-pointer bg-transparent border-none ${
+                  registerTab === "standard"
+                    ? "border-indigo-500 text-white"
+                    : "border-transparent text-slate-400 hover:text-slate-300"
+                }`}
+              >
+                Standard Registration
+              </button>
             </div>
 
             {regError && (
@@ -1132,47 +1174,68 @@ function LandingPage() {
                 </div>
               </div>
 
-              <div className="border-t border-slate-800 my-1 pt-3">
-                <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider block mb-2">Organization Authentication</span>
-              </div>
+              {registerTab === "trial" ? (
+                <>
+                  <div className="border-t border-slate-800 my-1 pt-3">
+                    <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider block mb-2">Organization Setup</span>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs text-slate-400 font-semibold">Organization Name (to create)</label>
+                    <input
+                      type="text"
+                      required
+                      value={regOrgName}
+                      onChange={(e) => setRegOrgName(e.target.value)}
+                      placeholder="Enter Organization Name"
+                      className="w-full rounded-lg border border-slate-850 bg-slate-950 py-1.5 px-3 text-xs text-slate-100 placeholder:text-slate-655 focus:border-indigo-500 focus:outline-none"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="border-t border-slate-800 my-1 pt-3">
+                    <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider block mb-2">Organization Authentication</span>
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs text-slate-400 font-semibold">Organization Name (case-insensitive)</label>
-                  <input
-                    type="text"
-                    required
-                    value={regOrgName}
-                    onChange={(e) => setRegOrgName(e.target.value)}
-                    placeholder="Enter Organization Name"
-                    className="w-full rounded-lg border border-slate-850 bg-slate-950 py-1.5 px-3 text-xs text-slate-100 placeholder:text-slate-655 focus:border-indigo-500 focus:outline-none"
-                  />
-                </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs text-slate-400 font-semibold">Organization Name (case-insensitive)</label>
+                      <input
+                        type="text"
+                        required
+                        value={regOrgName}
+                        onChange={(e) => setRegOrgName(e.target.value)}
+                        placeholder="Enter Organization Name"
+                        className="w-full rounded-lg border border-slate-850 bg-slate-950 py-1.5 px-3 text-xs text-slate-100 placeholder:text-slate-655 focus:border-indigo-500 focus:outline-none"
+                      />
+                    </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs text-slate-400 font-semibold">Organization Code</label>
-                  <input
-                    type="text"
-                    required
-                    value={regOrgCode}
-                    onChange={(e) => setRegOrgCode(e.target.value)}
-                    placeholder="e.g. HRMS202612345"
-                    className="w-full rounded-lg border border-slate-850 bg-slate-950 py-1.5 px-3 text-xs text-slate-100 placeholder:text-slate-655 focus:border-indigo-500 focus:outline-none"
-                  />
-                </div>
-              </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs text-slate-400 font-semibold">Organization Code</label>
+                      <input
+                        type="text"
+                        required
+                        value={regOrgCode}
+                        onChange={(e) => setRegOrgCode(e.target.value)}
+                        placeholder="e.g. HRMS202612345"
+                        className="w-full rounded-lg border border-slate-850 bg-slate-950 py-1.5 px-3 text-xs text-slate-100 placeholder:text-slate-655 focus:border-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-slate-400 font-semibold">OTP Code (generated by superadmin)</label>
-                <input
-                  type="text"
-                  required
-                  value={regOtp}
-                  onChange={(e) => setRegOtp(e.target.value)}
-                  placeholder="Enter 6-digit OTP"
-                  className="w-full rounded-lg border border-slate-850 bg-slate-950 py-1.5 px-3 text-xs text-slate-100 placeholder:text-slate-655 focus:border-indigo-500 focus:outline-none"
-                />
-              </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs text-slate-400 font-semibold">OTP Code (generated by superadmin)</label>
+                    <input
+                      type="text"
+                      required
+                      value={regOtp}
+                      onChange={(e) => setRegOtp(e.target.value)}
+                      placeholder="Enter 6-digit OTP"
+                      className="w-full rounded-lg border border-slate-850 bg-slate-950 py-1.5 px-3 text-xs text-slate-100 placeholder:text-slate-655 focus:border-indigo-500 focus:outline-none"
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="flex items-start gap-2 mt-2">
                 <input
@@ -1192,7 +1255,7 @@ function LandingPage() {
                 type="submit"
                 className="mt-2 w-full rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-600/10 cursor-pointer"
               >
-                Register and Join Org
+                {registerTab === "trial" ? "Start My Free Trial" : "Register and Join Org"}
               </button>
             </form>
 

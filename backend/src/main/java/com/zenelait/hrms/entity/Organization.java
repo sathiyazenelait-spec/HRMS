@@ -56,4 +56,11 @@ public class Organization implements Serializable {
     @Column(name = "modules_active", nullable = false, columnDefinition = "varchar(255) default 'ATTENDANCE,PAYROLL,SPRINTS,TICKETS'")
     @Builder.Default
     private String modulesActive = "ATTENDANCE,PAYROLL,SPRINTS,TICKETS";
+
+    @Column(name = "is_demo", nullable = false)
+    @Builder.Default
+    private Boolean isDemo = false;
+
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
 }

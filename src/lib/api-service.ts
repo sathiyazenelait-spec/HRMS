@@ -419,6 +419,166 @@ export const apiService = {
     throw new Error("User not found");
   },
 
+  // Register trial organization and admin user
+  async registerTrialUser(requestData: {
+    username: string;
+    gmail: string;
+    mobile: string;
+    password: string;
+    confirmPassword: string;
+    orgName: string;
+  }): Promise<User> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/auth/trial-register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || "Trial registration failed");
+      }
+
+      const user = await response.json();
+      return user;
+
+    } catch (e: any) {
+      console.warn("Backend offline, validating trial registration locally. Error:", e.message);
+
+      const { username, gmail, mobile, password, confirmPassword, orgName } = requestData;
+
+      if (password !== confirmPassword) {
+        throw new Error("Passwords do not match");
+      }
+
+      // Load mock db
+      const localOrgs = getLocalStorageItem("mock_organizations") || [];
+      const localUsers = getLocalStorageItem("mock_users") || [];
+
+      // Check if username already exists
+      if (localUsers.some((u: any) => u.username.toLowerCase() === username.toLowerCase())) {
+        throw new Error("Username already exists");
+      }
+
+      // Check if organization already exists
+      if (localOrgs.some((o: any) => o.name.toLowerCase() === orgName.toLowerCase())) {
+        throw new Error("Organization name already exists");
+      }
+
+      // Create new organization
+      const newOrgId = localOrgs.length > 0 ? Math.max(...localOrgs.map((o: any) => o.id)) + 1 : 1;
+      const newOrg = {
+        id: newOrgId,
+        name: orgName,
+        orgType: "IT" as const,
+        orgCode: "HRMS-TRIAL-" + Math.floor(10000 + Math.random() * 90000),
+        ownerGmail: gmail,
+        ownerMobile: mobile,
+        planType: "STANDARD" as const,
+        otpCode: "TRIAL",
+        workMode: "TASK_BASED" as const,
+        attendanceMode: "CLOCK_IN_OUT" as const,
+        modulesActive: "ATTENDANCE,PAYROLL,SPRINTS,TICKETS",
+        isDemo: true,
+        expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+      };
+      localOrgs.push(newOrg);
+      localStorage.setItem("mock_organizations", JSON.stringify(localOrgs));
+
+      // Create admin user
+      const newUser = {
+        username,
+        gmail,
+        mobile,
+        password,
+        role: "ADMIN" as const,
+        organization: newOrg
+      };
+      localUsers.push(newUser);
+      localStorage.setItem("mock_users", JSON.stringify(localUsers));
+
+      // Seed local mock data
+      // Departments
+      const localDepts = getLocalStorageItem("mock_departments") || [];
+      localDepts.push({
+        id: localDepts.length + 1,
+        name: "Engineering",
+        description: "Core software engineering team",
+        managerUsername: username,
+        organizationId: newOrgId
+      });
+      localStorage.setItem("mock_departments", JSON.stringify(localDepts));
+
+      // Projects
+      const localProjects = getLocalStorageItem("mock_projects") || [];
+      localProjects.push({
+        id: localProjects.length + 1,
+        name: "Zenelait Integration",
+        description: "Migrate core services to Zenelait Suite",
+        budget: 50000,
+        spent: 0,
+        owner: username,
+        status: "GREEN" as const,
+        organizationId: newOrgId
+      });
+      localStorage.setItem("mock_projects", JSON.stringify(localProjects));
+
+      // Sprints
+      const localSprints = getLocalStorageItem("mock_sprints") || [];
+      const sprintId = "sprint-trial-" + newOrgId;
+      localSprints.push({
+        id: sprintId,
+        name: "Sprint 1 - Foundation",
+        goal: "Setup initial configuration and verify environments",
+        status: "Active",
+        orgId: newOrgId,
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      });
+      localStorage.setItem("mock_sprints", JSON.stringify(localSprints));
+
+      // Tickets
+      const localTickets = getLocalStorageItem("mock_tickets") || [];
+      localTickets.push({
+        id: "TSK-101",
+        title: "Verify Organization Settings",
+        desc: "Review the modules and setup work mode preferences",
+        points: 5,
+        status: "To Do",
+        assignee: username,
+        sprintId: sprintId,
+        orgId: newOrgId,
+        priority: "High",
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      });
+      localStorage.setItem("mock_tickets", JSON.stringify(localTickets));
+
+      // Onboarding tasks
+      const localTasks = getLocalStorageItem("mock_onboarding_tasks") || [];
+      const taskNames = [
+        "Submit tax declarations",
+        "Fill emergency contact info",
+        "Setup profile credentials",
+        "Explore the interactive modules"
+      ];
+      const categories = ["DOCUMENTS", "WELCOME", "WELCOME", "TEAM"];
+      taskNames.forEach((t, i) => {
+        localTasks.push({
+          id: localTasks.length + 1,
+          username,
+          taskName: t,
+          category: categories[i],
+          completed: false,
+          organizationId: newOrgId
+        });
+      });
+      localStorage.setItem("mock_onboarding_tasks", JSON.stringify(localTasks));
+
+      return newUser as User;
+    }
+  },
+
   // Register new organization tenant
   async registerUser(requestData: {
     username: string;

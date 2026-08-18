@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS organizations (
     attendance_mode VARCHAR(50),
     work_mode VARCHAR(50),
     modules_active VARCHAR(1000),
+    is_demo BOOLEAN NOT NULL DEFAULT FALSE,
+    expires_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
