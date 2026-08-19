@@ -13,6 +13,119 @@ export const Route = createFileRoute("/_app")({
   component: AppLayout,
 });
 
+function TrialExpiredLock({ user, onActivated }: { user: User; onActivated: (upgradedOrg: any) => void }) {
+  const [plans, setPlans] = useState<any[]>([]);
+  const [upgrading, setUpgrading] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiService.getPlans().then(setPlans);
+  }, []);
+
+  const handleUpgrade = async (planName: string) => {
+    if (!user.organization) return;
+    setUpgrading(planName);
+    try {
+      const updatedOrg = await apiService.upgradeOrganization(user.organization.id, planName);
+      onActivated(updatedOrg);
+    } catch (e: any) {
+      alert("Error upgrading package: " + e.message);
+    } finally {
+      setUpgrading(null);
+    }
+  };
+
+  const handleLogout = () => {
+    apiService.logout();
+    window.location.href = "/";
+  };
+
+  const isAdmin = user.role === "ADMIN";
+
+  return (
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4 py-12 text-slate-100">
+      <div className="max-w-4xl w-full text-center space-y-6">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold uppercase tracking-wider">
+          Trial Period Expired
+        </div>
+        <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">
+          Activate Your Organization
+        </h1>
+        <p className="text-slate-400 max-w-xl mx-auto text-sm leading-relaxed">
+          Your 3-Day free trial for <span className="text-indigo-400 font-semibold">{user.organization?.name}</span> has expired.
+          {isAdmin
+            ? " Please select a subscription package below to upgrade and continue using Zenelait Workforce Network."
+            : " Please contact your administrator / HR manager to purchase a package and continue access."}
+        </p>
+
+        {!isAdmin ? (
+          <div className="pt-6">
+            <button
+              onClick={handleLogout}
+              className="px-6 py-2 rounded-lg bg-slate-800 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition cursor-pointer"
+            >
+              Sign Out
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 max-w-3xl mx-auto">
+              {plans.map((plan) => (
+                <div
+                  key={plan.name}
+                  className="flex flex-col rounded-xl border border-slate-850 bg-slate-900/50 p-6 text-left relative overflow-hidden backdrop-blur-sm hover:border-slate-850 transition"
+                >
+                  <div className="space-y-2">
+                    <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider block">
+                      {plan.name} Package
+                    </span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-extrabold text-white">${plan.price}</span>
+                      <span className="text-slate-500 text-xs">/month</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex-1 space-y-4">
+                    <div className="text-xs text-slate-400">
+                      Supports up to <strong className="text-slate-200 font-semibold">{plan.maxUsers}</strong> users
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      Modules included:
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {plan.allowedModules.split(",").map((mod: string) => (
+                          <span key={mod} className="px-1.5 py-0.5 rounded bg-slate-850 text-[10px] text-slate-300 border border-slate-800">
+                            {mod}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    disabled={upgrading !== null}
+                    onClick={() => handleUpgrade(plan.name)}
+                    className="mt-8 w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition disabled:opacity-50 cursor-pointer shadow-lg shadow-indigo-600/10"
+                  >
+                    {upgrading === plan.name ? "Processing..." : `Select & Activate`}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-6">
+              <button
+                onClick={handleLogout}
+                className="text-xs text-slate-500 hover:text-slate-350 transition cursor-pointer"
+              >
+                Sign Out & Return Home
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AppLayout() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,6 +146,25 @@ function AppLayout() {
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
         Authenticating session...
       </div>
+    );
+  }
+
+  // Check if trial organization has expired
+  const isTrialExpired =
+    currentUser.organization &&
+    currentUser.organization.isDemo &&
+    currentUser.organization.expiresAt &&
+    new Date(currentUser.organization.expiresAt).getTime() < Date.now();
+
+  if (isTrialExpired) {
+    return (
+      <TrialExpiredLock
+        user={currentUser}
+        onActivated={(upgradedOrg) => {
+          const updatedUser = { ...currentUser, organization: upgradedOrg };
+          setCurrentUser(updatedUser);
+        }}
+      />
     );
   }
 

@@ -40,6 +40,35 @@ public class SystemOperationController {
     @Autowired
     private LandingPageBlockRepository landingPageBlockRepository;
 
+    @jakarta.annotation.PostConstruct
+    public void seedDefaultPlans() {
+        try {
+            if (planRepository.count() == 0) {
+                System.out.println("Seeding default subscription plans...");
+                planRepository.save(SubscriptionPlan.builder()
+                        .name("STANDARD")
+                        .price(49.0)
+                        .maxUsers(150)
+                        .allowedModules("ATTENDANCE,PAYROLL,SPRINTS,TICKETS")
+                        .build());
+                planRepository.save(SubscriptionPlan.builder()
+                        .name("MIDLEVEL")
+                        .price(99.0)
+                        .maxUsers(500)
+                        .allowedModules("ATTENDANCE,PAYROLL,SPRINTS,TICKETS")
+                        .build());
+                planRepository.save(SubscriptionPlan.builder()
+                        .name("ENTERPRISE")
+                        .price(249.0)
+                        .maxUsers(9999)
+                        .allowedModules("ATTENDANCE,PAYROLL,SPRINTS,TICKETS")
+                        .build());
+            }
+        } catch (Exception e) {
+            System.err.println("Error seeding default plans: " + e.getMessage());
+        }
+    }
+
     // Create a pricing plan
     @PostMapping("/plan")
     public ResponseEntity<?> createPlan(@RequestBody Map<String, Object> payload) {

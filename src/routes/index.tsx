@@ -130,6 +130,7 @@ function LandingPage() {
   };
   const [resetPasswordVal, setResetPasswordVal] = useState("");
   const [resetConfirmPasswordVal, setResetConfirmPasswordVal] = useState("");
+  const [resetOtp, setResetOtp] = useState("");
   const [resetError, setResetError] = useState("");
   const [resetSuccess, setResetSuccess] = useState("");
 
@@ -138,8 +139,11 @@ function LandingPage() {
     setForgotError("");
     setForgotSuccess("");
     try {
-      await apiService.forgotPassword(forgotUsername);
-      setForgotSuccess("Reset request submitted! Please notify your HR to approve it. Once approved, you can reset your password using the 'Reset Password (If Approved)' button.");
+      const res = await apiService.forgotPassword(forgotUsername);
+      setForgotSuccess(res?.message || "Reset request submitted! The OTP has been sent to the Super Admin.");
+      setTimeout(() => {
+        setLoginStep("reset");
+      }, 2500);
     } catch (err: any) {
       setForgotError(err.message || "Request failed");
     }
@@ -154,8 +158,9 @@ function LandingPage() {
       return;
     }
     try {
-      await apiService.resetPassword(forgotUsername, resetPasswordVal);
-      setResetSuccess("Password reset successfully! You can now log in with your new password.");
+      await apiService.resetPassword(forgotUsername, resetOtp, resetPasswordVal);
+      setResetSuccess("Password reset successfully! A notification has been sent to the Super Admin. Redirecting to login...");
+      setResetOtp("");
       setResetPasswordVal("");
       setResetConfirmPasswordVal("");
       setTimeout(() => {
@@ -163,7 +168,7 @@ function LandingPage() {
         setLoginUsername(forgotUsername);
         setLoginPassword("");
         setResetSuccess("");
-      }, 2000);
+      }, 2500);
     } catch (err: any) {
       setResetError(err.message || "Reset failed");
     }
@@ -984,6 +989,21 @@ function LandingPage() {
                         value={forgotUsername}
                         onChange={(e) => setForgotUsername(e.target.value)}
                         placeholder="Enter your username"
+                        className="w-full rounded-lg border border-slate-850 bg-slate-950 py-2 pl-10 pr-4 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs text-slate-400 font-semibold">OTP Code (from Super Admin)</label>
+                    <div className="relative">
+                      <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                      <input
+                        type="text"
+                        required
+                        value={resetOtp}
+                        onChange={(e) => setResetOtp(e.target.value)}
+                        placeholder="Enter 6-digit OTP"
                         className="w-full rounded-lg border border-slate-850 bg-slate-950 py-2 pl-10 pr-4 text-sm text-slate-100 placeholder:text-slate-600 focus:border-indigo-500 focus:outline-none"
                       />
                     </div>

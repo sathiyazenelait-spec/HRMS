@@ -419,6 +419,79 @@ export const apiService = {
     throw new Error("User not found");
   },
 
+  // Get all pricing packages
+  async getPlans(): Promise<any[]> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/system-ops/plans`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch plans");
+      }
+      return await response.json();
+    } catch (e: any) {
+      console.warn("Backend offline, returning mock plans. Error:", e.message);
+      return [
+        { name: "STANDARD", price: 49, maxUsers: 150, allowedModules: "ATTENDANCE,PAYROLL,SPRINTS,TICKETS" },
+        { name: "MIDLEVEL", price: 99, maxUsers: 500, allowedModules: "ATTENDANCE,PAYROLL,SPRINTS,TICKETS" },
+        { name: "ENTERPRISE", price: 249, maxUsers: 9999, allowedModules: "ATTENDANCE,PAYROLL,SPRINTS,TICKETS" }
+      ];
+    }
+  },
+
+  // Upgrade organization from trial
+  async upgradeOrganization(orgId: number, planName: string): Promise<Organization> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/auth/upgrade-organization`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId, planName }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || "Upgrade failed");
+      }
+
+      const upgradedOrg = await response.json();
+
+      // Update session in localStorage if current user belongs to this org
+      const sessionStr = localStorage.getItem("hrms_user_session");
+      if (sessionStr) {
+        const session = JSON.parse(sessionStr);
+        if (session.organization && session.organization.id === orgId) {
+          session.organization = upgradedOrg;
+          localStorage.setItem("hrms_user_session", JSON.stringify(session));
+        }
+      }
+
+      return upgradedOrg;
+    } catch (e: any) {
+      console.warn("Backend offline, upgrading organization locally. Error:", e.message);
+
+      const localOrgs = getLocalStorageItem("mock_organizations") || [];
+      const orgIdx = localOrgs.findIndex((o: any) => o.id === orgId);
+      if (orgIdx === -1) {
+        throw new Error("Organization not found");
+      }
+
+      localOrgs[orgIdx].isDemo = false;
+      localOrgs[orgIdx].planType = planName.toUpperCase();
+      localOrgs[orgIdx].expiresAt = null;
+      localStorage.setItem("mock_organizations", JSON.stringify(localOrgs));
+
+      // Update current user session
+      const sessionStr = localStorage.getItem("hrms_user_session");
+      if (sessionStr) {
+        const session = JSON.parse(sessionStr);
+        if (session.organization && session.organization.id === orgId) {
+          session.organization = localOrgs[orgIdx];
+          localStorage.setItem("hrms_user_session", JSON.stringify(session));
+        }
+      }
+
+      return localOrgs[orgIdx];
+    }
+  },
+
   // Register trial organization and admin user
   async registerTrialUser(requestData: {
     username: string;
@@ -987,13 +1060,13 @@ export const apiService = {
     }
   },
 
-  // User resets password (finalizes workflow)
-  async resetPassword(username: string, newPassword: string): Promise<any> {
+  // User resets password (finalizes workflow with OTP)
+  async resetPassword(username: string, otp: string, newPassword: string): Promise<any> {
     try {
       const response = await fetch(`${BACKEND_URL}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, newPassword }),
+        body: JSON.stringify({ username, otp, newPassword }),
       });
       if (!response.ok) {
         const err = await response.json();
@@ -1003,13 +1076,13 @@ export const apiService = {
     } catch (e: any) {
       console.warn("Backend offline, resetting password locally. Error:", e.message);
 
-      const requests = getLocalStorageItem("mock_reset_requests");
+      const requests = getLocalStorageItem("mock_reset_requests") || [];
       const req = requests.find(
-        (r) => r.username.toLowerCase() === username.toLowerCase() && r.status === "APPROVED"
+        (r) => r.username.toLowerCase() === username.toLowerCase() && r.status === "PENDING"
       );
 
       if (!req) {
-        throw new Error("No approved password reset request found. Please contact your HR.");
+        throw new Error("No pending password reset request found.");
       }
 
       const users = getLocalStorageItem("mock_users");

@@ -27,6 +27,9 @@ public class PasswordResetRequest implements Serializable {
     @Column(nullable = false)
     private String status; // PENDING, APPROVED, COMPLETED
 
+    @Column(name = "otp_code")
+    private String otpCode;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "organization_id")
     private Organization organization;

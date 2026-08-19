@@ -3,6 +3,10 @@ package com.zenelait.hrms.controller;
 import com.zenelait.hrms.entity.Organization;
 import com.zenelait.hrms.entity.User;
 import com.zenelait.hrms.entity.PasswordResetRequest;
+import com.zenelait.hrms.entity.SystemNotification;
+import com.zenelait.hrms.entity.SubscriptionPlan;
+import com.zenelait.hrms.repository.SystemNotificationRepository;
+import com.zenelait.hrms.repository.SubscriptionPlanRepository;
 import com.zenelait.hrms.entity.Department;
 import com.zenelait.hrms.entity.Project;
 import com.zenelait.hrms.entity.Sprint;
@@ -47,6 +51,12 @@ public class AuthController {
 
     @Autowired
     private PasswordResetRequestRepository passwordResetRequestRepository;
+
+    @Autowired
+    private SystemNotificationRepository systemNotificationRepository;
+
+    @Autowired
+    private SubscriptionPlanRepository planRepository;
 
     @Autowired
     private DepartmentRepository departmentRepository;
@@ -416,7 +426,7 @@ public class AuthController {
         }
     }
 
-    // Forgot password request
+    // Forgot password request (Generates OTP and notifies Super Admin)
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
         try {
@@ -433,25 +443,41 @@ public class AuthController {
 
             User user = userOpt.get();
 
+            // Generate a 6-digit random OTP
+            int randomOtp = 100000 + new java.util.Random().nextInt(900000);
+            String otpCode = String.valueOf(randomOtp);
+
             // Check if request already exists
             Optional<PasswordResetRequest> existingRequest = passwordResetRequestRepository.findByUsername(username);
             PasswordResetRequest resetReq;
             if (existingRequest.isPresent()) {
                 resetReq = existingRequest.get();
                 resetReq.setStatus("PENDING");
+                resetReq.setOtpCode(otpCode);
             } else {
                 resetReq = PasswordResetRequest.builder()
                         .username(username)
                         .status("PENDING")
+                        .otpCode(otpCode)
                         .organization(user.getOrganization())
                         .build();
             }
 
             passwordResetRequestRepository.save(resetReq);
 
-            kafkaTemplate.send("authentication-events", username, "Password reset requested by user: " + username);
+            // Create notification for Super Admin
+            SystemNotification notification = SystemNotification.builder()
+                    .title("Password Reset OTP for " + username)
+                    .content("User '" + username + "' has requested a password reset. OTP Code: " + otpCode)
+                    .targetOrgId(null) // Global/Superadmin
+                    .isRead(false)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            systemNotificationRepository.save(notification);
 
-            return ResponseEntity.ok(Map.of("message", "Reset request submitted to HR"));
+            kafkaTemplate.send("authentication-events", username, "Password reset requested by user: " + username + " with OTP: " + otpCode);
+
+            return ResponseEntity.ok(Map.of("message", "Reset request submitted. The OTP has been sent to the Super Admin. Please consult them to retrieve your OTP."));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "Error submitting request: " + e.getMessage()));
@@ -493,21 +519,28 @@ public class AuthController {
         }
     }
 
-    // User resets password after approval
+    // User resets password after OTP verification
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
         try {
             String username = request.get("username");
+            String otpCode = request.get("otp");
             String newPassword = request.get("newPassword");
 
-            if (username == null || newPassword == null) {
-                return ResponseEntity.badRequest().body(Map.of("message", "Username and newPassword are required"));
+            if (username == null || otpCode == null || newPassword == null) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Username, otp, and newPassword are required"));
             }
 
-            Optional<PasswordResetRequest> reqOpt = passwordResetRequestRepository.findByUsernameAndStatus(username, "APPROVED");
+            Optional<PasswordResetRequest> reqOpt = passwordResetRequestRepository.findByUsernameAndStatus(username, "PENDING");
             if (reqOpt.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("message", "No approved password reset request found. Please contact your HR."));
+                        .body(Map.of("message", "No pending password reset request found."));
+            }
+
+            PasswordResetRequest req = reqOpt.get();
+            if (!otpCode.equals(req.getOtpCode())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "Invalid OTP code. Please check with Super Admin."));
             }
 
             Optional<User> userOpt = userRepository.findByUsername(username);
@@ -520,9 +553,18 @@ public class AuthController {
             user.setPassword(newPassword);
             userRepository.save(user);
 
-            PasswordResetRequest req = reqOpt.get();
             req.setStatus("COMPLETED");
             passwordResetRequestRepository.save(req);
+
+            // Create notification for Super Admin
+            SystemNotification notification = SystemNotification.builder()
+                    .title("Password Changed: " + username)
+                    .content("User '" + username + "' has successfully changed their password after verifying their OTP.")
+                    .targetOrgId(null) // Global/Superadmin
+                    .isRead(false)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            systemNotificationRepository.save(notification);
 
             kafkaTemplate.send("authentication-events", username, "Password reset completed successfully for: " + username);
 
@@ -530,6 +572,46 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "Error resetting password: " + e.getMessage()));
+        }
+    }
+
+    // Upgrade organization plan and lift demo state
+    @PostMapping("/upgrade-organization")
+    public ResponseEntity<?> upgradeOrganization(@RequestBody Map<String, Object> request) {
+        try {
+            Number orgIdNum = (Number) request.get("orgId");
+            String planName = (String) request.get("planName");
+
+            if (orgIdNum == null || planName == null) {
+                return ResponseEntity.badRequest().body(Map.of("message", "orgId and planName are required"));
+            }
+
+            Long orgId = orgIdNum.longValue();
+            Optional<Organization> orgOpt = organizationRepository.findById(orgId);
+            if (orgOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Organization not found"));
+            }
+
+            Organization org = orgOpt.get();
+            Optional<SubscriptionPlan> planOpt = planRepository.findByNameIgnoreCase(planName);
+            if (planOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Subscription plan not found"));
+            }
+
+            SubscriptionPlan plan = planOpt.get();
+            org.setIsDemo(false);
+            org.setPlanType(plan.getName().toUpperCase());
+            org.setModulesActive(plan.getAllowedModules());
+            org.setExpiresAt(null);
+            organizationRepository.save(org);
+
+            kafkaTemplate.send("organization-creation-events", String.valueOf(org.getId()),
+                    "Organization UPGRADED: ID=" + org.getId() + ", Plan=" + plan.getName());
+
+            return ResponseEntity.ok(org);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Upgrade error: " + e.getMessage()));
         }
     }
 

@@ -15,33 +15,11 @@ public class DemoCleanupService {
     @Autowired
     private EntityManager entityManager;
 
-    // Runs every minute to check for expired demo organizations
-    @Scheduled(cron = "0 * * * * *")
+    // Disabled automatic purging as per user requirement (we now suspend expired trials instead of deleting them)
+    // @Scheduled(cron = "0 * * * * *")
     @Transactional
     public void purgeExpiredDemoOrganizations() {
-        try {
-            LocalDateTime now = LocalDateTime.now();
-            
-            // Find expired demo organizations
-            Query selectQuery = entityManager.createQuery(
-                "SELECT o.id FROM Organization o WHERE o.isDemo = true AND o.expiresAt <= :now"
-            );
-            selectQuery.setParameter("now", now);
-            @SuppressWarnings("unchecked")
-            List<Long> expiredOrgIds = selectQuery.getResultList();
-
-            if (expiredOrgIds.isEmpty()) {
-                return;
-            }
-
-            System.out.println("[DemoCleanupService] Found " + expiredOrgIds.size() + " expired demo organizations to purge: " + expiredOrgIds);
-
-            for (Long orgId : expiredOrgIds) {
-                purgeOrganization(orgId);
-            }
-        } catch (Exception e) {
-            System.err.println("[DemoCleanupService] Error checking for expired demo organizations: " + e.getMessage());
-        }
+        // No-op - Automatic purging is disabled. Users will be prompted to upgrade to paid packages instead.
     }
 
     @Transactional
