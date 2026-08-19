@@ -291,11 +291,12 @@ public class AuthController {
             Project project = Project.builder()
                     .name("Zenelait Integration")
                     .description("Migrate core services to Zenelait Suite")
-                    .client("Internal")
-                    .status("Active")
+                    .status("GREEN")
                     .budget(50000.0)
-                    .startDate(java.time.LocalDate.now())
-                    .endDate(java.time.LocalDate.now().plusMonths(3))
+                    .spent(0.0)
+                    .owner(adminUsername)
+                    .teamMembers("")
+                    .milestones("")
                     .organizationId(org.getId())
                     .build();
             projectRepository.save(project);
