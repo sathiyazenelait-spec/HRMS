@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import jsPDF from "jspdf";
+import jsPDF from "jspdf/dist/jspdf.es.min.js";
 import html2canvas from "html2canvas";
 
 export const Route = createFileRoute("/_app/expenses")({
