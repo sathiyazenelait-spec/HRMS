@@ -41,11 +41,11 @@ SELECT 'superadmin', 'superadmin@zenelait.com', '1234567890', 'superadmin123', '
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'superadmin');
 
-INSERT INTO organizations (id, name, org_type, org_code, owner_gmail, owner_mobile, plan_type, otp_code, attendance_mode, work_mode, modules_active)
+INSERT INTO organizations (id, name, org_type, org_code, owner_gmail, owner_mobile, plan_type, otp_code, attendance_mode, work_mode, modules_active, is_demo)
 VALUES 
-(1, 'Initech', 'IT', 'HRMS202611111', 'initech.owner@gmail.com', '9876543210', 'STANDARD', '123456', 'CLOCK_IN_OUT', 'TASK_BASED', 'ATTENDANCE,PAYROLL,SPRINTS,TICKETS'),
-(2, 'AdVenture Inc', 'MARKETING', 'HRMS202622222', 'adventure.owner@gmail.com', '9876543211', 'MIDLEVEL', '654321', 'CLOCK_IN_OUT', 'TASK_BASED', 'ATTENDANCE,PAYROLL,SPRINTS,TICKETS'),
-(3, 'ACme temp', 'IT', 'HRMS202633333', 'acme.owner@gmail.com', '9876543212', 'ENTERPRISE', '999999', 'CLOCK_IN_OUT', 'SPRINT_BASED', 'ATTENDANCE,PAYROLL,SPRINTS,TICKETS')
+(1, 'Initech', 'IT', 'HRMS202611111', 'initech.owner@gmail.com', '9876543210', 'STANDARD', '123456', 'CLOCK_IN_OUT', 'TASK_BASED', 'ATTENDANCE,PAYROLL,SPRINTS,TICKETS', false),
+(2, 'AdVenture Inc', 'MARKETING', 'HRMS202622222', 'adventure.owner@gmail.com', '9876543211', 'MIDLEVEL', '654321', 'CLOCK_IN_OUT', 'TASK_BASED', 'ATTENDANCE,PAYROLL,SPRINTS,TICKETS', false),
+(3, 'ACme temp', 'IT', 'HRMS202633333', 'acme.owner@gmail.com', '9876543212', 'ENTERPRISE', '999999', 'CLOCK_IN_OUT', 'SPRINT_BASED', 'ATTENDANCE,PAYROLL,SPRINTS,TICKETS', false)
 ON DUPLICATE KEY UPDATE name = name;
 
 -- Seed Sample HR Users & Employees
