@@ -76,6 +76,7 @@ public class SuperAdminController {
                     .ownerMobile(ownerMobile)
                     .planType(planType.toUpperCase())
                     .otpCode(otpCode)
+                    .expiresAt(java.time.LocalDateTime.now().plusDays(30))
                     .build();
 
             Organization savedOrg = organizationRepository.save(org);

@@ -47,19 +47,19 @@ public class SystemOperationController {
                 System.out.println("Seeding default subscription plans...");
                 planRepository.save(SubscriptionPlan.builder()
                         .name("STANDARD")
-                        .price(49.0)
+                        .price(0.0)
                         .maxUsers(150)
                         .allowedModules("ATTENDANCE,PAYROLL,SPRINTS,TICKETS")
                         .build());
                 planRepository.save(SubscriptionPlan.builder()
                         .name("MIDLEVEL")
-                        .price(99.0)
+                        .price(0.0)
                         .maxUsers(500)
                         .allowedModules("ATTENDANCE,PAYROLL,SPRINTS,TICKETS")
                         .build());
                 planRepository.save(SubscriptionPlan.builder()
                         .name("ENTERPRISE")
-                        .price(249.0)
+                        .price(0.0)
                         .maxUsers(9999)
                         .allowedModules("ATTENDANCE,PAYROLL,SPRINTS,TICKETS")
                         .build());
@@ -101,6 +101,37 @@ public class SystemOperationController {
     public ResponseEntity<?> getPlans() {
         List<SubscriptionPlan> plans = planRepository.findAll();
         return ResponseEntity.ok(plans);
+    }
+
+    // Update subscription plan
+    @PutMapping("/plan/{id}")
+    public ResponseEntity<?> updatePlan(@PathVariable Long id, @RequestBody Map<String, Object> payload) {
+        try {
+            Optional<SubscriptionPlan> planOpt = planRepository.findById(id);
+            if (planOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "Plan not found"));
+            }
+
+            SubscriptionPlan plan = planOpt.get();
+            if (payload.containsKey("name")) {
+                plan.setName(((String) payload.get("name")).toUpperCase());
+            }
+            if (payload.containsKey("price")) {
+                plan.setPrice(((Number) payload.get("price")).doubleValue());
+            }
+            if (payload.containsKey("maxUsers")) {
+                plan.setMaxUsers(((Number) payload.get("maxUsers")).intValue());
+            }
+            if (payload.containsKey("allowedModules")) {
+                plan.setAllowedModules((String) payload.get("allowedModules"));
+            }
+
+            planRepository.save(plan);
+            return ResponseEntity.ok(plan);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error updating plan: " + e.getMessage()));
+        }
     }
 
     // Toggle active organization features

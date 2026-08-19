@@ -465,11 +465,20 @@ public class AuthController {
 
             passwordResetRequestRepository.save(resetReq);
 
-            // Create notification for Super Admin
+            // Create notification for Super Admin or target HR
+            Long targetOrgId = null;
+            String recipient = "the Super Admin";
+            if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+                if (user.getOrganization() != null) {
+                    targetOrgId = user.getOrganization().getId();
+                    recipient = "your HR";
+                }
+            }
+
             SystemNotification notification = SystemNotification.builder()
                     .title("Password Reset OTP for " + username)
                     .content("User '" + username + "' has requested a password reset. OTP Code: " + otpCode)
-                    .targetOrgId(null) // Global/Superadmin
+                    .targetOrgId(targetOrgId)
                     .isRead(false)
                     .createdAt(LocalDateTime.now())
                     .build();
@@ -477,7 +486,7 @@ public class AuthController {
 
             kafkaTemplate.send("authentication-events", username, "Password reset requested by user: " + username + " with OTP: " + otpCode);
 
-            return ResponseEntity.ok(Map.of("message", "Reset request submitted. The OTP has been sent to the Super Admin. Please consult them to retrieve your OTP."));
+            return ResponseEntity.ok(Map.of("message", "Reset request submitted. The OTP has been sent to " + recipient + ". Please consult them to retrieve your OTP."));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "Error submitting request: " + e.getMessage()));
@@ -493,6 +502,25 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", "Error fetching reset requests: " + e.getMessage()));
+        }
+    }
+
+    // List pending reset requests for Super Admin (where user's role is ADMIN)
+    @GetMapping("/superadmin/reset-requests")
+    public ResponseEntity<?> getSuperadminResetRequests() {
+        try {
+            List<PasswordResetRequest> pending = passwordResetRequestRepository.findAll()
+                .stream()
+                .filter(r -> "PENDING".equals(r.getStatus()))
+                .filter(r -> {
+                    Optional<User> uOpt = userRepository.findByUsername(r.getUsername());
+                    return uOpt.isPresent() && "ADMIN".equalsIgnoreCase(uOpt.get().getRole());
+                })
+                .collect(java.util.stream.Collectors.toList());
+            return ResponseEntity.ok(pending);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Error fetching superadmin reset requests: " + e.getMessage()));
         }
     }
 
@@ -531,16 +559,16 @@ public class AuthController {
                 return ResponseEntity.badRequest().body(Map.of("message", "Username, otp, and newPassword are required"));
             }
 
-            Optional<PasswordResetRequest> reqOpt = passwordResetRequestRepository.findByUsernameAndStatus(username, "PENDING");
+            Optional<PasswordResetRequest> reqOpt = passwordResetRequestRepository.findByUsernameAndStatus(username, "APPROVED");
             if (reqOpt.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("message", "No pending password reset request found."));
+                        .body(Map.of("message", "No approved password reset request found. Please contact your administrator / Super Admin to approve your request first."));
             }
 
             PasswordResetRequest req = reqOpt.get();
             if (!otpCode.equals(req.getOtpCode())) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("message", "Invalid OTP code. Please check with Super Admin."));
+                        .body(Map.of("message", "Invalid OTP code. Please check with your administrator / Super Admin."));
             }
 
             Optional<User> userOpt = userRepository.findByUsername(username);
@@ -602,11 +630,11 @@ public class AuthController {
             org.setIsDemo(false);
             org.setPlanType(plan.getName().toUpperCase());
             org.setModulesActive(plan.getAllowedModules());
-            org.setExpiresAt(null);
+            org.setExpiresAt(LocalDateTime.now().plusDays(30));
             organizationRepository.save(org);
 
             kafkaTemplate.send("organization-creation-events", String.valueOf(org.getId()),
-                    "Organization UPGRADED: ID=" + org.getId() + ", Plan=" + plan.getName());
+                     "Organization UPGRADED: ID=" + org.getId() + ", Plan=" + plan.getName());
 
             return ResponseEntity.ok(org);
         } catch (Exception e) {

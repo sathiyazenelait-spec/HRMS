@@ -231,7 +231,7 @@ function LandingPage() {
 
   // Calculate pricing based on interactive inputs
   const pricePerUser = billingCycle === "annually" ? 6 : 8;
-  const basePrice = 49;
+  const basePrice = 0;
   const calculatedTotal = basePrice + employeeCount * pricePerUser;
 
   return (
@@ -418,7 +418,7 @@ function LandingPage() {
                     <div>
                       <div className="flex justify-between items-baseline mb-2">
                         <span className="text-xs text-slate-500 font-medium">Base System License</span>
-                        <span className="font-semibold text-slate-300">$49/month</span>
+                        <span className="font-semibold text-slate-300">$0/month</span>
                       </div>
                       <div className="flex justify-between items-baseline">
                         <span className="text-xs text-slate-500 font-medium">Seat License ({employeeCount} users)</span>
@@ -995,7 +995,7 @@ function LandingPage() {
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs text-slate-400 font-semibold">OTP Code (from Super Admin)</label>
+                    <label className="text-xs text-slate-400 font-semibold">OTP Code (from Administrator / Super Admin)</label>
                     <div className="relative">
                       <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                       <input
@@ -1071,36 +1071,11 @@ function LandingPage() {
             >
               <X className="h-5 w-5" />
             </button>
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-6">
               <div className="flex h-8 w-8 items-center justify-center rounded bg-indigo-600 text-white">
                 <Sparkles className="h-4 w-4" />
               </div>
-              <span className="text-lg font-bold">{registerTab === "trial" ? "Start 3-Day Free Trial" : "Register Admin User"}</span>
-            </div>
-
-            <div className="flex border-b border-slate-800 mb-6">
-              <button
-                type="button"
-                onClick={() => setRegisterTab("trial")}
-                className={`flex-1 pb-3 text-sm font-semibold border-b-2 transition-all cursor-pointer bg-transparent border-none ${
-                  registerTab === "trial"
-                    ? "border-indigo-500 text-white"
-                    : "border-transparent text-slate-400 hover:text-slate-300"
-                }`}
-              >
-                3-Day Free Trial
-              </button>
-              <button
-                type="button"
-                onClick={() => setRegisterTab("standard")}
-                className={`flex-1 pb-3 text-sm font-semibold border-b-2 transition-all cursor-pointer bg-transparent border-none ${
-                  registerTab === "standard"
-                    ? "border-indigo-500 text-white"
-                    : "border-transparent text-slate-400 hover:text-slate-300"
-                }`}
-              >
-                Standard Registration
-              </button>
+              <span className="text-lg font-bold">Start 3-Day Free Trial</span>
             </div>
 
             {regError && (
@@ -1158,7 +1133,7 @@ function LandingPage() {
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
                       placeholder="Password"
-                      className="w-full rounded-lg border border-slate-850 bg-slate-950 py-1.5 pl-9 pr-3 text-xs text-slate-100 placeholder:text-slate-655 focus:border-indigo-500 focus:outline-none"
+                      className="w-full rounded-lg border border-slate-855 bg-slate-955 py-1.5 pl-9 pr-3 text-xs text-slate-100 placeholder:text-slate-655 focus:border-indigo-500 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -1173,7 +1148,7 @@ function LandingPage() {
                       value={regConfirmPassword}
                       onChange={(e) => setRegConfirmPassword(e.target.value)}
                       placeholder="Confirm password"
-                      className="w-full rounded-lg border border-slate-850 bg-slate-950 py-1.5 pl-9 pr-3 text-xs text-slate-100 placeholder:text-slate-655 focus:border-indigo-500 focus:outline-none"
+                      className="w-full rounded-lg border border-slate-855 bg-slate-955 py-1.5 pl-9 pr-3 text-xs text-slate-100 placeholder:text-slate-655 focus:border-indigo-500 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -1194,68 +1169,20 @@ function LandingPage() {
                 </div>
               </div>
 
-              {registerTab === "trial" ? (
-                <>
-                  <div className="border-t border-slate-800 my-1 pt-3">
-                    <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider block mb-2">Organization Setup</span>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs text-slate-400 font-semibold">Organization Name (to create)</label>
-                    <input
-                      type="text"
-                      required
-                      value={regOrgName}
-                      onChange={(e) => setRegOrgName(e.target.value)}
-                      placeholder="Enter Organization Name"
-                      className="w-full rounded-lg border border-slate-850 bg-slate-950 py-1.5 px-3 text-xs text-slate-100 placeholder:text-slate-655 focus:border-indigo-500 focus:outline-none"
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="border-t border-slate-800 my-1 pt-3">
-                    <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider block mb-2">Organization Authentication</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs text-slate-400 font-semibold">Organization Name (case-insensitive)</label>
-                      <input
-                        type="text"
-                        required
-                        value={regOrgName}
-                        onChange={(e) => setRegOrgName(e.target.value)}
-                        placeholder="Enter Organization Name"
-                        className="w-full rounded-lg border border-slate-850 bg-slate-950 py-1.5 px-3 text-xs text-slate-100 placeholder:text-slate-655 focus:border-indigo-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs text-slate-400 font-semibold">Organization Code</label>
-                      <input
-                        type="text"
-                        required
-                        value={regOrgCode}
-                        onChange={(e) => setRegOrgCode(e.target.value)}
-                        placeholder="e.g. HRMS202612345"
-                        className="w-full rounded-lg border border-slate-850 bg-slate-950 py-1.5 px-3 text-xs text-slate-100 placeholder:text-slate-655 focus:border-indigo-500 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs text-slate-400 font-semibold">OTP Code (generated by superadmin)</label>
-                    <input
-                      type="text"
-                      required
-                      value={regOtp}
-                      onChange={(e) => setRegOtp(e.target.value)}
-                      placeholder="Enter 6-digit OTP"
-                      className="w-full rounded-lg border border-slate-850 bg-slate-950 py-1.5 px-3 text-xs text-slate-100 placeholder:text-slate-655 focus:border-indigo-500 focus:outline-none"
-                    />
-                  </div>
-                </>
-              )}
+              <div className="border-t border-slate-800 my-1 pt-3">
+                <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider block mb-2">Organization Setup</span>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-slate-400 font-semibold">Organization Name (to create)</label>
+                <input
+                  type="text"
+                  required
+                  value={regOrgName}
+                  onChange={(e) => setRegOrgName(e.target.value)}
+                  placeholder="Enter Organization Name"
+                  className="w-full rounded-lg border border-slate-850 bg-slate-950 py-1.5 px-3 text-xs text-slate-100 placeholder:text-slate-655 focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
 
               <div className="flex items-start gap-2 mt-2">
                 <input
@@ -1264,7 +1191,7 @@ function LandingPage() {
                   id="regAccept"
                   checked={regAccept}
                   onChange={(e) => setRegAccept(e.target.checked)}
-                  className="mt-0.5 h-3.5 w-3.5 rounded border-slate-800 bg-slate-950 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                  className="mt-0.5 h-3.5 w-3.5 rounded border-slate-800 bg-slate-955 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                 />
                 <label htmlFor="regAccept" className="text-xs text-slate-400 cursor-pointer select-none">
                   I accept the Terms of Service and Privacy Policy.
@@ -1275,7 +1202,7 @@ function LandingPage() {
                 type="submit"
                 className="mt-2 w-full rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-600/10 cursor-pointer"
               >
-                {registerTab === "trial" ? "Start My Free Trial" : "Register and Join Org"}
+                Start My Free Trial
               </button>
             </form>
 

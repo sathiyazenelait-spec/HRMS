@@ -316,6 +316,7 @@ function EmployeesPage() {
                     <tr className="border-b border-muted">
                       <th className="py-3 px-4 font-semibold text-muted-foreground">Username</th>
                       <th className="py-3 px-4 font-semibold text-muted-foreground">Status</th>
+                      <th className="py-3 px-4 font-semibold text-muted-foreground">OTP Code</th>
                       <th className="py-3 px-4 font-semibold text-muted-foreground">Requested At</th>
                       <th className="py-3 px-4 font-semibold text-muted-foreground text-right">Actions</th>
                     </tr>
@@ -329,6 +330,7 @@ function EmployeesPage() {
                             {req.status}
                           </Badge>
                         </td>
+                        <td className="py-3.5 px-4 font-mono font-semibold text-indigo-500 dark:text-indigo-400">{req.otpCode || "N/A"}</td>
                         <td className="py-3.5 px-4 text-muted-foreground">
                           {req.createdAt ? new Date(req.createdAt).toLocaleString() : "N/A"}
                         </td>

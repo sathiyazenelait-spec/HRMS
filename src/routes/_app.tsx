@@ -40,20 +40,30 @@ function TrialExpiredLock({ user, onActivated }: { user: User; onActivated: (upg
   };
 
   const isAdmin = user.role === "ADMIN";
+  const isDemo = user.organization?.isDemo;
+  const planType = user.organization?.planType || "STANDARD";
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center px-4 py-12 text-slate-100">
       <div className="max-w-4xl w-full text-center space-y-6">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold uppercase tracking-wider">
-          Trial Period Expired
+          {isDemo ? "Trial Period Expired" : "Subscription Plan Expired"}
         </div>
         <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">
-          Activate Your Organization
+          {isDemo ? "Activate Your Organization" : "Renew Your Subscription"}
         </h1>
         <p className="text-slate-400 max-w-xl mx-auto text-sm leading-relaxed">
-          Your 3-Day free trial for <span className="text-indigo-400 font-semibold">{user.organization?.name}</span> has expired.
+          {isDemo ? (
+            <>
+              Your 3-Day free trial for <span className="text-indigo-400 font-semibold">{user.organization?.name}</span> has expired.
+            </>
+          ) : (
+            <>
+              Your subscription package (<span className="text-indigo-400 font-semibold">{planType}</span>) for <span className="text-indigo-400 font-semibold">{user.organization?.name}</span> has expired.
+            </>
+          )}
           {isAdmin
-            ? " Please select a subscription package below to upgrade and continue using Zenelait Workforce Network."
+            ? " Please select a subscription package below to continue using Zenelait Workforce Network."
             : " Please contact your administrator / HR manager to purchase a package and continue access."}
         </p>
 
@@ -149,14 +159,13 @@ function AppLayout() {
     );
   }
 
-  // Check if trial organization has expired
-  const isTrialExpired =
+  // Check if organization subscription package has expired
+  const isSubscriptionExpired =
     currentUser.organization &&
-    currentUser.organization.isDemo &&
     currentUser.organization.expiresAt &&
     new Date(currentUser.organization.expiresAt).getTime() < Date.now();
 
-  if (isTrialExpired) {
+  if (isSubscriptionExpired) {
     return (
       <TrialExpiredLock
         user={currentUser}

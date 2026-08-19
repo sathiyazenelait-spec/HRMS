@@ -430,9 +430,9 @@ export const apiService = {
     } catch (e: any) {
       console.warn("Backend offline, returning mock plans. Error:", e.message);
       return [
-        { name: "STANDARD", price: 49, maxUsers: 150, allowedModules: "ATTENDANCE,PAYROLL,SPRINTS,TICKETS" },
-        { name: "MIDLEVEL", price: 99, maxUsers: 500, allowedModules: "ATTENDANCE,PAYROLL,SPRINTS,TICKETS" },
-        { name: "ENTERPRISE", price: 249, maxUsers: 9999, allowedModules: "ATTENDANCE,PAYROLL,SPRINTS,TICKETS" }
+        { name: "STANDARD", price: 0, maxUsers: 150, allowedModules: "ATTENDANCE,PAYROLL,SPRINTS,TICKETS" },
+        { name: "MIDLEVEL", price: 0, maxUsers: 500, allowedModules: "ATTENDANCE,PAYROLL,SPRINTS,TICKETS" },
+        { name: "ENTERPRISE", price: 0, maxUsers: 9999, allowedModules: "ATTENDANCE,PAYROLL,SPRINTS,TICKETS" }
       ];
     }
   },
@@ -475,7 +475,9 @@ export const apiService = {
 
       localOrgs[orgIdx].isDemo = false;
       localOrgs[orgIdx].planType = planName.toUpperCase();
-      localOrgs[orgIdx].expiresAt = null;
+      const nextExpiry = new Date();
+      nextExpiry.setDate(nextExpiry.getDate() + 30);
+      localOrgs[orgIdx].expiresAt = nextExpiry.toISOString();
       localStorage.setItem("mock_organizations", JSON.stringify(localOrgs));
 
       // Update current user session
@@ -770,8 +772,8 @@ export const apiService = {
       const random5Digits = Math.floor(10000 + Math.random() * 90000);
       const orgCode = `HRMS${currentYear}${random5Digits}`;
 
-      // Generate 6-digit OTP
-      const otpCode = String(Math.floor(100000 + Math.random() * 900000));
+      const nextExpiry = new Date();
+      nextExpiry.setDate(nextExpiry.getDate() + 30);
 
       const newOrg: Organization = {
         id: orgs.length + 1,
@@ -782,6 +784,7 @@ export const apiService = {
         ownerMobile,
         planType: planType.toUpperCase() as any,
         otpCode,
+        expiresAt: nextExpiry.toISOString(),
       };
 
       orgs.push(newOrg);
@@ -1002,10 +1005,12 @@ export const apiService = {
       const requests = getLocalStorageItem("mock_reset_requests");
       const existingIdx = requests.findIndex((r) => r.username.toLowerCase() === username.toLowerCase());
 
+      const randomOtp = Math.floor(100000 + Math.random() * 900000).toString();
       const newRequest = {
         id: existingIdx !== -1 ? requests[existingIdx].id : requests.length + 1,
         username: user.username,
         status: "PENDING",
+        otpCode: randomOtp,
         organization: user.organization,
         createdAt: new Date().toISOString(),
       };
@@ -1017,7 +1022,11 @@ export const apiService = {
       }
 
       localStorage.setItem("mock_reset_requests", JSON.stringify(requests));
-      return { message: "Reset request submitted to HR (offline)" };
+      if (user.role === "ADMIN") {
+        return { message: "Reset request submitted. The OTP has been sent to the Super Admin. Please consult them to retrieve your OTP." };
+      } else {
+        return { message: "Reset request submitted. The OTP has been sent to your HR. Please consult them to retrieve your OTP." };
+      }
     }
   },
 
@@ -1033,6 +1042,25 @@ export const apiService = {
       console.warn("Backend offline, fetching local reset requests. Error:", e.message);
       const requests = getLocalStorageItem("mock_reset_requests");
       return requests.filter((r) => r.organization && r.organization.id === orgId && r.status === "PENDING");
+    }
+  },
+
+  // Fetch pending HR reset requests for Superadmin
+  async getSuperadminResetRequests(): Promise<any[]> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/auth/superadmin/reset-requests`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch superadmin reset requests");
+      }
+      return await response.json();
+    } catch (e: any) {
+      console.warn("Backend offline, fetching local superadmin reset requests. Error:", e.message);
+      const requests = getLocalStorageItem("mock_reset_requests") || [];
+      const mockUsers = getLocalStorageItem("mock_users") || [];
+      return requests.filter((r: any) => {
+        const u = mockUsers.find((user: any) => user.username === r.username);
+        return u && u.role === "ADMIN" && r.status === "PENDING";
+      });
     }
   },
 
@@ -1461,6 +1489,27 @@ export const apiService = {
     return newPlan;
   },
 
+  async updateSubscriptionPlan(id: number, name: string, price: number, maxUsers: number, allowedModules: string): Promise<any> {
+    try {
+      const response = await fetch(`${BACKEND_URL}/system-ops/plan/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, price, maxUsers, allowedModules }),
+      });
+      if (response.ok) return await response.json();
+    } catch (e) {
+      console.warn("Backend updateSubscriptionPlan offline fallback active");
+    }
+    const plans = getLocalStorageItem("mock_subscription_plans") || [];
+    const idx = plans.findIndex((p: any) => p.id === id);
+    if (idx !== -1) {
+      plans[idx] = { ...plans[idx], name: name.toUpperCase(), price, maxUsers, allowedModules };
+      localStorage.setItem("mock_subscription_plans", JSON.stringify(plans));
+      return plans[idx];
+    }
+    throw new Error("Plan not found");
+  },
+
   async getSubscriptionPlans(): Promise<any[]> {
     try {
       const response = await fetch(`${BACKEND_URL}/system-ops/plans`);
@@ -1470,9 +1519,9 @@ export const apiService = {
     }
     if (!localStorage.getItem("mock_subscription_plans")) {
       const defaults = [
-        { id: 1, name: "STANDARD", price: 49, maxUsers: 10, allowedModules: "ATTENDANCE" },
-        { id: 2, name: "MIDLEVEL", price: 99, maxUsers: 50, allowedModules: "ATTENDANCE,PAYROLL" },
-        { id: 3, name: "ENTERPRISE", price: 249, maxUsers: 500, allowedModules: "ATTENDANCE,PAYROLL,SPRINTS,TICKETS" },
+        { id: 1, name: "STANDARD", price: 0, maxUsers: 150, allowedModules: "ATTENDANCE,PAYROLL,SPRINTS,TICKETS" },
+        { id: 2, name: "MIDLEVEL", price: 0, maxUsers: 500, allowedModules: "ATTENDANCE,PAYROLL,SPRINTS,TICKETS" },
+        { id: 3, name: "ENTERPRISE", price: 0, maxUsers: 9999, allowedModules: "ATTENDANCE,PAYROLL,SPRINTS,TICKETS" },
       ];
       localStorage.setItem("mock_subscription_plans", JSON.stringify(defaults));
     }

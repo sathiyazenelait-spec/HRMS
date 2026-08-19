@@ -9,6 +9,7 @@ import {
   Plus,
   Mail,
   Phone,
+  Lock,
   CheckCircle,
   Copy,
   TrendingUp,
@@ -48,6 +49,8 @@ function SuperadminDashboard() {
   const [newPlanMaxUsers, setNewPlanMaxUsers] = useState(50);
   const [newPlanAllowedModules, setNewPlanAllowedModules] = useState("ATTENDANCE,PAYROLL");
   const [planSuccess, setPlanSuccess] = useState("");
+  const [editingPlanId, setEditingPlanId] = useState<number | null>(null);
+  const [hrResetRequests, setHrResetRequests] = useState<any[]>([]);
   const [currency, setCurrency] = useState<"USD" | "INR">("INR");
 
   const [queries, setQueries] = useState<any[]>([]);
@@ -194,6 +197,7 @@ function SuperadminDashboard() {
     loadPlans();
     loadQueries();
     loadHRs();
+    loadHrResetRequests();
     
     const fetchSchema = async () => {
       try {
@@ -224,19 +228,35 @@ function SuperadminDashboard() {
     }
   };
 
+  const loadHrResetRequests = async () => {
+    try {
+      const data = await apiService.getSuperadminResetRequests();
+      setHrResetRequests(data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleCreatePlan = async (e: React.FormEvent) => {
     e.preventDefault();
     setPlanSuccess("");
     try {
-      await apiService.createSubscriptionPlan(newPlanName, newPlanPrice, newPlanMaxUsers, newPlanAllowedModules);
-      setPlanSuccess(`Successfully created pricing plan "${newPlanName}"!`);
+      if (editingPlanId) {
+        await apiService.updateSubscriptionPlan(editingPlanId, newPlanName, newPlanPrice, newPlanMaxUsers, newPlanAllowedModules);
+        setPlanSuccess(`Successfully updated pricing plan "${newPlanName}"!`);
+        setEditingPlanId(null);
+      } else {
+        await apiService.createSubscriptionPlan(newPlanName, newPlanPrice, newPlanMaxUsers, newPlanAllowedModules);
+        setPlanSuccess(`Successfully created pricing plan "${newPlanName}"!`);
+      }
       setNewPlanName("");
-      setNewPlanPrice(99);
+      setNewPlanPrice(0);
       setNewPlanMaxUsers(50);
+      setNewPlanAllowedModules("ATTENDANCE,PAYROLL,SPRINTS,TICKETS");
       loadPlans();
       setTimeout(() => setPlanSuccess(""), 3000);
     } catch (err: any) {
-      alert(err.message || "Failed to create subscription plan");
+      alert(err.message || "Failed to save subscription plan");
     }
   };
 
@@ -805,14 +825,15 @@ function SuperadminDashboard() {
 
         {/* SUBTAB 3: Plans & Features */}
         {activeSubTab === "plans" && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in text-left">
-            {/* Create Pricing Plan Form */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in text-left">            {/* Create/Edit Pricing Plan Form */}
             <div className="lg:col-span-1 bg-slate-900/30 border border-slate-900 rounded-2xl p-6 flex flex-col gap-4">
               <div>
                 <h3 className="font-bold text-sm text-slate-350 flex items-center gap-1.5">
-                  Create Subscription Plan
+                  {editingPlanId ? "Edit Subscription Plan" : "Create Subscription Plan"}
                 </h3>
-                <p className="text-[11px] text-slate-500 mt-1">Configure customized subscription pricing tiers for new clients.</p>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  {editingPlanId ? "Modify details of the selected subscription plan tier." : "Configure customized subscription pricing tiers for new clients."}
+                </p>
               </div>
 
               {planSuccess && (
@@ -854,7 +875,7 @@ function SuperadminDashboard() {
                     value={newPlanName}
                     onChange={(e) => setNewPlanName(e.target.value)}
                     placeholder="e.g. PROFESSIONAL"
-                    className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs focus:border-indigo-500 focus:outline-none"
+                    className="rounded-lg border border-slate-800 bg-slate-955 px-3 py-2 text-xs focus:border-indigo-500 focus:outline-none"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -864,7 +885,7 @@ function SuperadminDashboard() {
                     required
                     value={newPlanPrice}
                     onChange={(e) => setNewPlanPrice(Number(e.target.value))}
-                    className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs focus:border-indigo-500 focus:outline-none"
+                    className="rounded-lg border border-slate-800 bg-slate-955 px-3 py-2 text-xs focus:border-indigo-500 focus:outline-none"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -874,7 +895,7 @@ function SuperadminDashboard() {
                     required
                     value={newPlanMaxUsers}
                     onChange={(e) => setNewPlanMaxUsers(Number(e.target.value))}
-                    className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs focus:border-indigo-500 focus:outline-none"
+                    className="rounded-lg border border-slate-800 bg-slate-955 px-3 py-2 text-xs focus:border-indigo-500 focus:outline-none"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -885,15 +906,32 @@ function SuperadminDashboard() {
                     value={newPlanAllowedModules}
                     onChange={(e) => setNewPlanAllowedModules(e.target.value)}
                     placeholder="ATTENDANCE,PAYROLL,SPRINTS"
-                    className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs focus:border-indigo-500 focus:outline-none"
+                    className="rounded-lg border border-slate-800 bg-slate-955 px-3 py-2 text-xs focus:border-indigo-500 focus:outline-none"
                   />
                 </div>
-                <button
-                  type="submit"
-                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold cursor-pointer"
-                >
-                  Create Plan Tier
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold cursor-pointer"
+                  >
+                    {editingPlanId ? "Save Plan Tier" : "Create Plan Tier"}
+                  </button>
+                  {editingPlanId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingPlanId(null);
+                        setNewPlanName("");
+                        setNewPlanPrice(0);
+                        setNewPlanMaxUsers(50);
+                        setNewPlanAllowedModules("ATTENDANCE,PAYROLL,SPRINTS,TICKETS");
+                      }}
+                      className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-semibold cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
               </form>
             </div>
 
@@ -914,6 +952,18 @@ function SuperadminDashboard() {
                         <div className="flex items-center gap-3">
                           <span className="text-indigo-400 font-extrabold">{currency === "USD" ? "$" : "₹"}{p.price}/mo</span>
                           <span className="bg-indigo-500/10 text-indigo-400 text-[10px] px-2 py-0.5 rounded font-semibold">{p.allowedModules}</span>
+                          <button
+                            onClick={() => {
+                              setEditingPlanId(p.id);
+                              setNewPlanName(p.name);
+                              setNewPlanPrice(p.price);
+                              setNewPlanMaxUsers(p.maxUsers);
+                              setNewPlanAllowedModules(p.allowedModules);
+                            }}
+                            className="px-2 py-1 bg-slate-800 hover:bg-slate-750 text-slate-300 rounded text-[10px] font-bold cursor-pointer"
+                          >
+                            Edit
+                          </button>
                         </div>
                       </div>
                     ))
@@ -1403,6 +1453,60 @@ function SuperadminDashboard() {
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
                               </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Pending HR Password Reset Requests */}
+              <div className="bg-slate-900/20 border border-slate-900 rounded-xl p-6 flex flex-col gap-4">
+                <h3 className="font-bold text-sm text-slate-300 flex items-center gap-1.5">
+                  <Lock className="h-4.5 w-4.5 text-indigo-400" />
+                  Pending HR Password Reset Requests
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-900 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
+                        <th className="py-3">HR Username</th>
+                        <th className="py-3">OTP Code</th>
+                        <th className="py-3">Requested At</th>
+                        <th className="py-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {hrResetRequests.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="py-8 text-center text-slate-500 italic">
+                            No pending HR password reset requests.
+                          </td>
+                        </tr>
+                      ) : (
+                        hrResetRequests.map((req) => (
+                          <tr key={req.id} className="border-b border-slate-900/60 hover:bg-slate-900/10">
+                            <td className="py-3 font-semibold text-slate-200">{req.username}</td>
+                            <td className="py-3 font-mono text-indigo-400 font-semibold">{req.otpCode || "N/A"}</td>
+                            <td className="py-3 text-slate-400">
+                              {req.createdAt ? new Date(req.createdAt).toLocaleString() : "N/A"}
+                            </td>
+                            <td className="py-3 text-right">
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await apiService.approveReset(req.id);
+                                    loadHrResetRequests();
+                                  } catch (err: any) {
+                                    alert(err.message || "Failed to approve request");
+                                  }
+                                }}
+                                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-bold cursor-pointer text-[10px]"
+                              >
+                                Approve Reset
+                              </button>
                             </td>
                           </tr>
                         ))
